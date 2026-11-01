@@ -9,8 +9,17 @@ dist-ssr/
 
 # local scratch
 .raw/
-.chrome-profile/
+.prev/
+.chrome-profile*/
 .screenshot*
+.shots/
+.live*
+.slow*.mjs
+.rm*.mjs
+.phase.mjs
+.screencast.mjs
 .shot.mjs
 .walk.mjs
 .eval*.mjs
+.*-test.mjs
+.names.mjs

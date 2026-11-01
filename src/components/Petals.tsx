@@ -12,7 +12,7 @@ type Petal = {
   size: number
 }
 
-export function Petals({ count = 420 }: { count?: number }) {
+export function Petals({ count = 300 }: { count?: number }) {
   const mesh = useRef<THREE.InstancedMesh>(null!)
   const dummy = useMemo(() => new THREE.Object3D(), [])
 

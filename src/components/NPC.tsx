@@ -44,15 +44,26 @@ export function NPC({ npc }: { npc: NpcDef }) {
   const phase = useMemo(() => Math.random() * Math.PI * 2, [])
 
   useEffect(() => {
+    const tint = npc.tint ? new THREE.Color(npc.tint) : null
     model.traverse((child) => {
-      if (child instanceof THREE.Mesh) {
-        child.castShadow = true
-        child.receiveShadow = true
-        child.frustumCulled = false
+      if (!(child instanceof THREE.Mesh)) return
+      child.castShadow = true
+      child.receiveShadow = true
+      child.frustumCulled = false
+      if (!tint) return
+
+      const tintMaterial = (source: THREE.Material) => {
+        if (!(source instanceof THREE.MeshStandardMaterial)) return source
+        const material = source.clone()
+        material.color.lerp(tint, 0.34)
+        return material
       }
+      child.material = Array.isArray(child.material)
+        ? child.material.map(tintMaterial)
+        : tintMaterial(child.material)
     })
     baseY.current = model.position.y
-  }, [model])
+  }, [model, npc.tint])
 
   const { actions } = useAnimations(gltf.animations, model)
   const idleTime = useMemo(() => {
@@ -154,7 +165,7 @@ export function NPC({ npc }: { npc: NpcDef }) {
       wait.current -= dt
       if (wait.current <= 0) {
         const angle = Math.random() * Math.PI * 2
-        const radius = 1.5 + Math.random() * 4.5
+        const radius = 1.2 + Math.random() * 2.6
         target.current.set(home.x + Math.cos(angle) * radius, 0, home.z + Math.sin(angle) * radius)
         walking.current = true
       }
@@ -167,7 +178,11 @@ export function NPC({ npc }: { npc: NpcDef }) {
   })
 
   return (
-    <group ref={group} position={[npc.position[0], terrainHeight(npc.position[0], npc.position[1]), npc.position[1]]}>
+    <group
+      ref={group}
+      scale={npc.scale ?? 1}
+      position={[npc.position[0], terrainHeight(npc.position[0], npc.position[1]), npc.position[1]]}
+    >
       <primitive object={model} />
     </group>
   )

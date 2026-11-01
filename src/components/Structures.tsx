@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import * as THREE from 'three'
 import { mulberry32, terrainHeight } from '../game'
+import { HOUSE_SPOTS } from '../layout'
 import { Toon } from './Toon'
 
 const CRIMSON = '#c8352b'
@@ -208,10 +209,14 @@ export function Structures() {
 
       <Pagoda position={[0, terrainHeight(0, -36), -36]} />
 
-      <House position={[-12, terrainHeight(-12, 3), 3]} rotation={0.5} />
-      <House position={[12.5, terrainHeight(12.5, 4), 4]} rotation={-0.5} scale={0.95} />
-      <House position={[-14, terrainHeight(-14, -7), -7]} rotation={0.9} scale={0.85} />
-      <House position={[14, terrainHeight(14, -8), -8]} rotation={-0.8} scale={0.9} />
+      {HOUSE_SPOTS.map((house, index) => (
+        <House
+          key={index}
+          position={[house.position[0], terrainHeight(house.position[0], house.position[1]), house.position[1]]}
+          rotation={house.rotation}
+          scale={house.scale}
+        />
+      ))}
 
       <StoneLantern position={[3.1, terrainHeight(3.1, 8), 8]} light />
       <StoneLantern position={[-3.1, terrainHeight(-3.1, 8), 8]} light />

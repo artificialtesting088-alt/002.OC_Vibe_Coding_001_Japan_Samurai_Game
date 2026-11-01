@@ -4,8 +4,6 @@ import { useGame } from '../store'
 
 export function Hud() {
   const health = useGame((state) => state.health)
-  const stamina = useGame((state) => state.stamina)
-  const sprinting = useGame((state) => state.sprinting)
   const locked = useGame((state) => state.locked)
   const quest = useGame((state) => state.quest)
   const dialog = useGame((state) => state.dialog)
@@ -57,12 +55,6 @@ export function Hud() {
             <div className="bar__fill bar__fill--health" style={{ width: `${health}%` }} />
           </div>
         </div>
-        <div className="bar">
-          <span className="bar__label">{sprinting ? 'Lari' : 'Stamina'}</span>
-          <div className="bar__track">
-            <div className="bar__fill bar__fill--stamina" style={{ width: `${stamina}%` }} />
-          </div>
-        </div>
       </div>
 
       {locked && <div className="hud__crosshair" />}
@@ -81,8 +73,8 @@ export function Hud() {
         <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> gerak &nbsp;·&nbsp;
         <kbd>Shift</kbd> lari &nbsp;·&nbsp;
         <kbd>Space</kbd> lompat &nbsp;·&nbsp;
+        <kbd>F</kbd> / <kbd>Klik</kbd> pukul, ulangi tebas &nbsp;·&nbsp;
         <kbd>E</kbd> bicara &nbsp;·&nbsp;
-        <kbd>Klik</kbd> kunci kursor &nbsp;·&nbsp;
         <kbd>Esc</kbd> lepas kursor
       </div>
 

@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useAnimations, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.js'
+import { loadPlayerClips } from '../animations'
 import { normalizeHeight } from '../characters'
 import { asset, cameraLook, playerTransform, terrainHeight } from '../game'
 import { useGame } from '../store'
@@ -10,14 +11,62 @@ import { useGame } from '../store'
 const MODEL_URL = 'characters/samurai.glb'
 const GRAVITY = 26
 const JUMP_SPEED = 8.6
+const ATTACK_TIME_SCALE = 0.85
+const PUNCH_TIME_SCALE = 1
+const COMBO_WINDOW = 0.9
 
-type Gait = 'Idle' | 'Walk' | 'Run'
+type Gait = 'Idle' | 'Walk' | 'Run' | 'Punch' | 'Attack'
+type AttackKind = 'punch' | 'slash'
 
 function findAction(actions: Record<string, THREE.AnimationAction | null>, name: string) {
   const direct = actions[name]
   if (direct) return direct
   const key = Object.keys(actions).find((candidate) => candidate.toLowerCase() === name.toLowerCase())
   return key ? actions[key] : null
+}
+
+function createKatana() {
+  const katana = new THREE.Group()
+  katana.name = 'Katana'
+
+  const steel = new THREE.MeshStandardMaterial({
+    color: '#e8f2ff',
+    metalness: 1,
+    roughness: 0.16,
+    emissive: new THREE.Color('#3f6b8c'),
+    emissiveIntensity: 0.35,
+  })
+  const wrap = new THREE.MeshStandardMaterial({ color: '#181820', roughness: 0.92, metalness: 0.1 })
+  const bronze = new THREE.MeshStandardMaterial({ color: '#9b7a3a', roughness: 0.34, metalness: 0.9 })
+
+  const blade = new THREE.Mesh(new THREE.BoxGeometry(2.5, 74, 0.75), steel)
+  blade.position.y = 48
+  blade.castShadow = true
+  katana.add(blade)
+
+  const tip = new THREE.Mesh(new THREE.ConeGeometry(1.75, 9, 4), steel)
+  tip.position.y = 89.5
+  tip.rotation.y = Math.PI / 4
+  tip.scale.z = 0.42
+  tip.castShadow = true
+  katana.add(tip)
+
+  const guard = new THREE.Mesh(new THREE.CylinderGeometry(4.1, 4.1, 1.4, 10), bronze)
+  guard.position.y = 11
+  guard.castShadow = true
+  katana.add(guard)
+
+  const grip = new THREE.Mesh(new THREE.CylinderGeometry(1.45, 1.3, 22, 8), wrap)
+  grip.position.y = 0
+  grip.castShadow = true
+  katana.add(grip)
+
+  const pommel = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.8, 2, 8), bronze)
+  pommel.position.y = -11.4
+  pommel.castShadow = true
+  katana.add(pommel)
+
+  return katana
 }
 
 export function Player() {
@@ -31,33 +80,54 @@ export function Player() {
   const group = useRef<THREE.Group>(null!)
   const keys = useRef<Record<string, boolean>>({})
   const jumpQueued = useRef(false)
-  const stamina = useRef(100)
-  const vitalsClock = useRef(0)
   const verticalVelocity = useRef(0)
   const grounded = useRef(true)
   const baseY = useRef(model.position.y)
   const gait = useRef<Gait | ''>('')
 
+  const [baked, setBaked] = useState<Record<string, THREE.AnimationClip>>({})
   useEffect(() => {
-    model.traverse((child) => {
-      if (child instanceof THREE.Mesh) {
-        child.castShadow = true
-        child.receiveShadow = true
-        child.frustumCulled = false
-      }
-    })
-    baseY.current = model.position.y
-  }, [model])
+    let cancelled = false
+    loadPlayerClips()
+      .then((clips) => {
+        if (!cancelled) setBaked(clips)
+      })
+      .catch((error) => console.warn('Animasi tempur gagal dimuat', error))
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
-  const { actions } = useAnimations(gltf.animations, model)
+  const clips = useMemo(() => {
+    const extra = Object.values(baked)
+    return extra.length ? [...gltf.animations, ...extra] : gltf.animations
+  }, [gltf.animations, baked])
+
+  const { actions } = useAnimations(clips, model)
   const idleTime = useMemo(() => {
     const clip = gltf.animations.find((candidate) => candidate.name.toLowerCase() === 'walk')
     return clip ? clip.duration * 0.02 : 0
   }, [gltf.animations])
+
   const currentAction = useRef<THREE.AnimationAction | null>(null)
   const play = useCallback(
     (nextGait: Gait) => {
-      const next = findAction(actions, nextGait === 'Run' ? 'Run' : 'Walk')
+      const walk = findAction(actions, 'Walk')
+      const run = findAction(actions, 'Run')
+      const bakedIdle = findAction(actions, 'Idle_Loop')
+      const punch = findAction(actions, 'Punch_Jab')
+      const attack = findAction(actions, 'Sword_Attack')
+
+      const next =
+        nextGait === 'Punch'
+          ? punch
+          : nextGait === 'Attack'
+            ? attack
+            : nextGait === 'Run'
+              ? run
+              : nextGait === 'Walk'
+                ? walk
+                : (bakedIdle ?? walk)
       if (!next) return
       if (gait.current === nextGait && currentAction.current?.isScheduled()) return
       const previous = currentAction.current
@@ -65,7 +135,7 @@ export function Player() {
       if (next === previous) {
         if (!next.isScheduled()) next.play()
         next.setEffectiveWeight(1)
-        if (nextGait === 'Idle') {
+        if (nextGait === 'Idle' && next === walk && !bakedIdle) {
           next.paused = true
           next.time = idleTime
         } else {
@@ -78,11 +148,21 @@ export function Player() {
       next.reset()
       next.enabled = true
       next.setEffectiveWeight(1)
-      next.setLoop(THREE.LoopRepeat, Infinity)
-      next.paused = nextGait === 'Idle'
-      if (nextGait === 'Idle') next.time = idleTime
-      next.fadeIn(0.2).play()
-      previous?.fadeOut(0.2)
+      next.fadeIn(0.18)
+      if (nextGait === 'Punch' || nextGait === 'Attack') {
+        next.setLoop(THREE.LoopOnce, 1)
+        next.clampWhenFinished = true
+        next.timeScale = nextGait === 'Punch' ? PUNCH_TIME_SCALE : ATTACK_TIME_SCALE
+        next.paused = false
+      } else {
+        next.setLoop(THREE.LoopRepeat, Infinity)
+        next.timeScale = 1
+        const restingOnWalk = nextGait === 'Idle' && next === walk && !bakedIdle
+        next.paused = restingOnWalk
+        if (restingOnWalk) next.time = idleTime
+      }
+      next.play()
+      previous?.fadeOut(0.18)
       currentAction.current = next
       gait.current = nextGait
     },
@@ -93,6 +173,40 @@ export function Player() {
     play('Idle')
   }, [play])
 
+  const katana = useMemo(() => createKatana(), [])
+  const aura = useRef<THREE.Group>(null!)
+  const auraCore = useRef<THREE.MeshBasicMaterial>(null!)
+  const auraEdge = useRef<THREE.MeshBasicMaterial>(null!)
+  const auraLight = useRef<THREE.PointLight>(null!)
+  const attacking = useRef(false)
+  const attackQueued = useRef(false)
+  const attackAction = useRef<THREE.AnimationAction | null>(null)
+  const attackKind = useRef<AttackKind | null>(null)
+  const attackStart = useRef(0)
+  const comboReady = useRef(false)
+  const lastPunchEnd = useRef(0)
+
+  useEffect(() => {
+    model.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        child.castShadow = true
+        child.receiveShadow = true
+        child.frustumCulled = false
+      }
+    })
+    baseY.current = model.position.y
+  }, [model])
+
+  useEffect(() => {
+    const hand = model.getObjectByName('RightHand')
+    if (!hand) return
+    katana.visible = false
+    hand.add(katana)
+    return () => {
+      hand.remove(katana)
+    }
+  }, [model, katana])
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       keys.current[event.code] = true
@@ -100,21 +214,31 @@ export function Player() {
         event.preventDefault()
         if (!event.repeat) jumpQueued.current = true
       }
+      if (event.code === 'KeyF' && !event.repeat) attackQueued.current = true
     }
     const onKeyUp = (event: KeyboardEvent) => {
       keys.current[event.code] = false
     }
+    const onMouseDown = (event: MouseEvent) => {
+      if (event.button !== 0) return
+      if (!document.pointerLockElement) return
+      if (useGame.getState().dialog) return
+      attackQueued.current = true
+    }
     const onBlur = () => {
       keys.current = {}
       jumpQueued.current = false
+      attackQueued.current = false
     }
 
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
+    window.addEventListener('mousedown', onMouseDown)
     window.addEventListener('blur', onBlur)
     return () => {
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
+      window.removeEventListener('mousedown', onMouseDown)
       window.removeEventListener('blur', onBlur)
     }
   }, [])
@@ -124,15 +248,35 @@ export function Player() {
     const root = group.current
     if (!root || !model) return
 
+    const dialogOpen = !!useGame.getState().dialog
     const forward = (keys.current['KeyW'] ? 1 : 0) - (keys.current['KeyS'] ? 1 : 0)
     const strafe = (keys.current['KeyD'] ? 1 : 0) - (keys.current['KeyA'] ? 1 : 0)
     const moving = forward !== 0 || strafe !== 0
-    const dialogOpen = !!useGame.getState().dialog
     const wantsSprint = !!(keys.current['ShiftLeft'] || keys.current['ShiftRight'])
-    const sprinting = wantsSprint && moving && stamina.current > 2 && !dialogOpen
-    const speed = dialogOpen ? 0 : sprinting ? 8.6 : moving ? 4.9 : 0
 
-    if (moving && !dialogOpen) {
+    if (attackQueued.current) {
+      attackQueued.current = false
+      if (!attacking.current && !dialogOpen && grounded.current) {
+        const now = state.clock.elapsedTime
+        const punch = findAction(actions, 'Punch_Jab')
+        const sword = findAction(actions, 'Sword_Attack')
+        const combo = comboReady.current && now - lastPunchEnd.current <= COMBO_WINDOW
+        const kind: AttackKind = combo || !punch ? 'slash' : 'punch'
+        const action = kind === 'punch' ? punch : sword
+        comboReady.current = false
+        attacking.current = true
+        attackKind.current = kind
+        attackStart.current = now
+        attackAction.current = action
+        if (action) play(kind === 'punch' ? 'Punch' : 'Attack')
+      }
+    }
+
+    const isAttacking = attacking.current
+    const sprinting = wantsSprint && moving && !dialogOpen && !isAttacking
+    const speed = dialogOpen || isAttacking ? 0 : sprinting ? 8.8 : moving ? 4.9 : 0
+
+    if (moving && !dialogOpen && !isAttacking) {
       const yaw = cameraLook.yaw
       let dx = -Math.sin(yaw) * forward + Math.cos(yaw) * strafe
       let dz = -Math.cos(yaw) * forward - Math.sin(yaw) * strafe
@@ -160,7 +304,7 @@ export function Player() {
 
     if (jumpQueued.current) {
       jumpQueued.current = false
-      if (grounded.current) {
+      if (grounded.current && !isAttacking) {
         verticalVelocity.current = JUMP_SPEED
         grounded.current = false
       }
@@ -176,36 +320,110 @@ export function Player() {
       }
     }
 
+    if (isAttacking) {
+      const kind = attackKind.current
+      const action = attackAction.current
+      const clip = action?.getClip()
+      const fallback = kind === 'punch' ? 0.3 : 1.2
+      const duration = clip ? clip.duration / Math.max(action!.timeScale, 0.01) : fallback
+      const elapsed = state.clock.elapsedTime - attackStart.current
+      const phase =
+        clip && clip.duration > 0 && action
+          ? Math.min(1, action.time / clip.duration)
+          : Math.min(1, elapsed / duration)
+
+      if (kind === 'slash') {
+        const draw = THREE.MathUtils.smoothstep(phase, 0, 0.12)
+        katana.visible = phase < 0.97
+        katana.scale.setScalar(0.35 + draw * 0.65)
+        katana.rotation.z = (1 - draw) * -1.1
+
+        const auraT = THREE.MathUtils.clamp((phase - 0.45) / 0.35, 0, 1)
+        const auraOn = phase >= 0.45 && phase <= 0.8
+        aura.current.visible = auraOn
+        if (auraOn) {
+          const strength = Math.sin(Math.PI * auraT)
+          auraCore.current.opacity = strength * 0.75
+          auraEdge.current.opacity = strength * 0.5
+          aura.current.scale.setScalar(0.6 + auraT * 0.5)
+          aura.current.rotation.z = -0.35 + auraT * 1.1
+          auraLight.current.intensity = strength * 7
+        } else {
+          auraLight.current.intensity = 0
+        }
+      } else {
+        katana.visible = false
+        aura.current.visible = false
+        auraLight.current.intensity = 0
+      }
+
+      if (elapsed >= duration - 0.05) {
+        attacking.current = false
+        attackKind.current = null
+        if (kind === 'punch') {
+          comboReady.current = true
+          lastPunchEnd.current = state.clock.elapsedTime
+        }
+        katana.visible = false
+        aura.current.visible = false
+        auraLight.current.intensity = 0
+      }
+    } else {
+      katana.visible = false
+      aura.current.visible = false
+      auraLight.current.intensity = 0
+    }
+
+    const stillAttacking = attacking.current
     playerTransform.position.copy(root.position)
-    playerTransform.moving = moving
+    playerTransform.moving = moving && !stillAttacking
     playerTransform.sprinting = sprinting
     playerTransform.speed = speed
 
-    if (sprinting) {
-      stamina.current = Math.max(0, stamina.current - 20 * dt)
-    } else {
-      stamina.current = Math.min(100, stamina.current + 13 * dt)
+    if (!stillAttacking) {
+      if (moving && !dialogOpen) {
+        play(sprinting ? 'Run' : 'Walk')
+      } else {
+        play('Idle')
+      }
     }
 
-    vitalsClock.current += dt
-    if (vitalsClock.current >= 0.2) {
-      vitalsClock.current = 0
-      useGame.getState().setVitals({ stamina: Math.round(stamina.current), sprinting })
-    }
-
-    if (moving && !dialogOpen) {
-      play(sprinting ? 'Run' : 'Walk')
-    } else {
-      play('Idle')
-    }
-
-    const bob = gait.current === 'Idle' ? Math.sin(state.clock.elapsedTime * 1.6) * 0.006 : 0
+    const bob = !stillAttacking && gait.current === 'Idle' ? Math.sin(state.clock.elapsedTime * 1.6) * 0.006 : 0
     model.position.y = baseY.current + bob
   })
 
   return (
     <group ref={group} position={[0, terrainHeight(0, 12), 12]}>
       <primitive object={model} />
+      <group ref={aura} visible={false} position={[0, 0.92, 0.55]} rotation={[0.08, 0.12, -0.35]}>
+        <mesh>
+          <ringGeometry args={[0.62, 1, 42, 1, 0, 2]} />
+          <meshBasicMaterial
+            ref={auraCore}
+            color="#b9ecff"
+            transparent
+            opacity={0}
+            depthWrite={false}
+            side={THREE.DoubleSide}
+            blending={THREE.AdditiveBlending}
+            toneMapped={false}
+          />
+        </mesh>
+        <mesh>
+          <ringGeometry args={[0.98, 1.05, 42, 1, 0, 2]} />
+          <meshBasicMaterial
+            ref={auraEdge}
+            color="#6fcfff"
+            transparent
+            opacity={0}
+            depthWrite={false}
+            side={THREE.DoubleSide}
+            blending={THREE.AdditiveBlending}
+            toneMapped={false}
+          />
+        </mesh>
+        <pointLight ref={auraLight} position={[0, 0, 0.3]} color="#9fdcff" intensity={0} distance={5} decay={2} />
+      </group>
     </group>
   )
 }

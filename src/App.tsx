@@ -9,7 +9,7 @@ export default function App() {
     <div className="app">
       <Canvas
         shadows
-        dpr={[1, 1.8]}
+        dpr={[1, 1.5]}
         camera={{ fov: 55, near: 0.1, far: 1200, position: [0, 7, 22] }}
         gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05 }}
       >

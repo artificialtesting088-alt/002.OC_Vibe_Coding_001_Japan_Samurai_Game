@@ -128,10 +128,6 @@ canvas {
   background: linear-gradient(90deg, #8e1f1a, var(--crimson));
 }
 
-.bar__fill--stamina {
-  background: linear-gradient(90deg, #b98a2e, var(--gold));
-}
-
 .hud__hint {
   position: absolute;
   bottom: 24px;

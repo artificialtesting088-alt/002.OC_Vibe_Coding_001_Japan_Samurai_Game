@@ -30,7 +30,7 @@ export function Scene() {
         intensity={3.2}
         color="#ffd0a1"
         castShadow
-        shadow-mapSize={[2048, 2048]}
+        shadow-mapSize={[1024, 1024]}
         shadow-camera-left={-45}
         shadow-camera-right={45}
         shadow-camera-top={45}

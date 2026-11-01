@@ -25,7 +25,7 @@ export function Terrain() {
   }, [map, normalMap, roughnessMap])
 
   const geometry = useMemo(() => {
-    const geo = new THREE.PlaneGeometry(440, 440, 180, 180)
+    const geo = new THREE.PlaneGeometry(440, 440, 128, 128)
     geo.rotateX(-Math.PI / 2)
 
     const position = geo.attributes.position as THREE.BufferAttribute

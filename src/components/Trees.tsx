@@ -1,16 +1,16 @@
 import { useMemo } from 'react'
-import { useGLTF, useTexture } from '@react-three/drei'
+import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { asset, mulberry32, terrainHeight } from '../game'
+import { HOUSE_SPOTS } from '../layout'
+import { NPCS } from '../npcs'
 
 const KEEPOUT = [
   { x: 0, z: 12, r: 6 },
   { x: 0, z: -9, r: 6 },
   { x: 0, z: -36, r: 8 },
-  { x: -12, z: 3, r: 6 },
-  { x: 12.5, z: 4, r: 6 },
-  { x: -14, z: -7, r: 6 },
-  { x: 14, z: -8, r: 6 },
+  ...HOUSE_SPOTS.map((house) => ({ x: house.position[0], z: house.position[1], r: 6.5 })),
+  ...NPCS.map((npc) => ({ x: npc.position[0], z: npc.position[1], r: 3 })),
 ]
 
 function isFree(x: number, z: number) {
@@ -21,7 +21,6 @@ function isFree(x: number, z: number) {
 
 export function JacarandaTrees() {
   const gltf = useGLTF(asset('models/jacaranda_tree/tree_low.gltf'))
-  const pinkLeaves = useTexture(asset('models/jacaranda_tree/textures/jacaranda_tree_leaves_diff_pink_1k.jpg'))
 
   const { instances } = useMemo(() => {
     gltf.scene.traverse((child) => {
@@ -31,12 +30,6 @@ export function JacarandaTrees() {
       const materials = Array.isArray(child.material) ? child.material : [child.material]
       for (const material of materials) {
         if (material.name.includes('leaves') && material instanceof THREE.MeshStandardMaterial) {
-          pinkLeaves.colorSpace = THREE.SRGBColorSpace
-          pinkLeaves.wrapS = THREE.RepeatWrapping
-          pinkLeaves.wrapT = THREE.RepeatWrapping
-          pinkLeaves.anisotropy = 8
-          pinkLeaves.needsUpdate = true
-          material.map = pinkLeaves
           material.color.set('#ffffff')
           material.emissive.set('#3d1727')
           material.emissiveIntensity = 0.18
@@ -55,7 +48,7 @@ export function JacarandaTrees() {
     const rand = mulberry32(7777)
     const placements: { x: number; z: number; scale: number; rotation: number }[] = []
     let attempts = 0
-    while (placements.length < 11 && attempts < 400) {
+    while (placements.length < 14 && attempts < 600) {
       attempts++
       const x = (rand() - 0.5) * 170
       const z = (rand() - 0.5) * 170
@@ -73,7 +66,7 @@ export function JacarandaTrees() {
     })
 
     return { instances: clones }
-  }, [gltf.scene, pinkLeaves])
+  }, [gltf.scene])
 
   return (
     <>
@@ -95,7 +88,7 @@ export function Boulders() {
 
     const rand = mulberry32(2024)
     const result: THREE.Object3D[] = []
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 8; i++) {
       const angle = rand() * Math.PI * 2
       const distance = 16 + rand() * 42
       const x = Math.cos(angle) * distance

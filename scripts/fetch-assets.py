@@ -51,12 +51,14 @@ def download_character(name: str) -> None:
         raise RuntimeError(f"{name}: download failed")
     welded = RAW / f"{name}-weld.glb"
     low = RAW / f"{name}-low.glb"
+    resized = RAW / f"{name}-resized.glb"
     final = PUB / "characters" / f"{name}.glb"
     if not welded.exists():
         gltf_transform("weld", str(raw), str(welded))
     if not low.exists():
-        gltf_transform("simplify", str(welded), str(low), "--ratio", "0.12", "--error", "0.002")
-    gltf_transform("quantize", str(low), str(final))
+        gltf_transform("simplify", str(welded), str(low), "--ratio", "0.5", "--error", "0.01")
+    gltf_transform("resize", str(low), str(resized), "--width", "512", "--height", "512")
+    gltf_transform("quantize", str(resized), str(final))
 
 
 def download_polyhaven_model(model_id: str) -> None:
@@ -69,7 +71,7 @@ def download_polyhaven_model(model_id: str) -> None:
 
 
 def main() -> None:
-    for name in ("samurai", "ninja", "farmer", "elderly-man", "woman", "king"):
+    for name in ("samurai", "ninja"):
         download_character(name)
 
     download(

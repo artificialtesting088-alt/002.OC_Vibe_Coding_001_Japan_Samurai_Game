@@ -7,35 +7,35 @@
     {
       "type": "SCALAR",
       "componentType": 5123,
-      "count": 70902,
+      "count": 13509,
       "bufferView": 0,
       "byteOffset": 0
     },
     {
       "type": "SCALAR",
       "componentType": 5123,
-      "count": 39924,
+      "count": 39408,
       "bufferView": 0,
-      "byteOffset": 141804
+      "byteOffset": 27020
     },
     {
       "type": "SCALAR",
-      "componentType": 5125,
-      "count": 144144,
+      "componentType": 5123,
+      "count": 25944,
       "bufferView": 0,
-      "byteOffset": 221652
+      "byteOffset": 105836
     },
     {
       "type": "VEC2",
       "componentType": 5126,
-      "count": 27631,
+      "count": 5774,
       "bufferView": 1,
       "byteOffset": 0
     },
     {
       "type": "VEC4",
       "componentType": 5121,
-      "count": 27631,
+      "count": 5774,
       "normalized": true,
       "bufferView": 1,
       "byteOffset": 8
@@ -43,16 +43,16 @@
     {
       "type": "VEC3",
       "componentType": 5122,
-      "count": 27631,
+      "count": 5774,
       "max": [
-        31463,
-        26207,
-        24999
+        30339,
+        25651,
+        24759
       ],
       "min": [
-        -32303,
-        -19602,
-        -23454
+        -29651,
+        -15605,
+        -19966
       ],
       "normalized": true,
       "bufferView": 1,
@@ -61,7 +61,7 @@
     {
       "type": "VEC3",
       "componentType": 5122,
-      "count": 27631,
+      "count": 5774,
       "normalized": true,
       "bufferView": 1,
       "byteOffset": 20
@@ -69,7 +69,7 @@
     {
       "type": "VEC4",
       "componentType": 5121,
-      "count": 6488,
+      "count": 6444,
       "normalized": true,
       "bufferView": 2,
       "byteOffset": 0
@@ -77,7 +77,7 @@
     {
       "type": "VEC3",
       "componentType": 5122,
-      "count": 6488,
+      "count": 6444,
       "max": [
         16225,
         1856,
@@ -95,7 +95,7 @@
     {
       "type": "VEC3",
       "componentType": 5122,
-      "count": 6488,
+      "count": 6444,
       "normalized": true,
       "bufferView": 2,
       "byteOffset": 12
@@ -103,7 +103,7 @@
     {
       "type": "VEC2",
       "componentType": 5123,
-      "count": 6488,
+      "count": 6444,
       "normalized": true,
       "bufferView": 2,
       "byteOffset": 20
@@ -111,7 +111,7 @@
     {
       "type": "VEC4",
       "componentType": 5121,
-      "count": 128810,
+      "count": 24886,
       "normalized": true,
       "bufferView": 3,
       "byteOffset": 0
@@ -119,16 +119,16 @@
     {
       "type": "VEC3",
       "componentType": 5122,
-      "count": 128810,
+      "count": 24886,
       "max": [
-        32767,
+        31171,
         26027,
-        25835
+        24550
       ],
       "min": [
-        -32767,
+        -31467,
         -20106,
-        -25835
+        -24226
       ],
       "normalized": true,
       "bufferView": 3,
@@ -137,7 +137,7 @@
     {
       "type": "VEC3",
       "componentType": 5122,
-      "count": 128810,
+      "count": 24886,
       "normalized": true,
       "bufferView": 3,
       "byteOffset": 12
@@ -145,7 +145,7 @@
     {
       "type": "VEC2",
       "componentType": 5123,
-      "count": 128810,
+      "count": 24886,
       "normalized": true,
       "bufferView": 3,
       "byteOffset": 20
@@ -155,27 +155,27 @@
     {
       "buffer": 0,
       "byteOffset": 0,
-      "byteLength": 798228,
+      "byteLength": 157724,
       "target": 34963
     },
     {
       "buffer": 0,
-      "byteOffset": 798228,
-      "byteLength": 773668,
+      "byteOffset": 157724,
+      "byteLength": 161672,
       "byteStride": 28,
       "target": 34962
     },
     {
       "buffer": 0,
-      "byteOffset": 1571896,
-      "byteLength": 155712,
+      "byteOffset": 319396,
+      "byteLength": 154656,
       "byteStride": 24,
       "target": 34962
     },
     {
       "buffer": 0,
-      "byteOffset": 1727608,
-      "byteLength": 3091440,
+      "byteOffset": 474052,
+      "byteLength": 597264,
       "byteStride": 24,
       "target": 34962
     }
@@ -276,7 +276,7 @@
   "buffers": [
     {
       "uri": "jacaranda_tree.bin",
-      "byteLength": 4819048
+      "byteLength": 1071316
     }
   ],
   "materials": [
