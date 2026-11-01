@@ -1,42 +1,53 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
+import { useTexture } from '@react-three/drei'
 import * as THREE from 'three'
-import { terrainHeight } from '../game'
+import { asset, terrainHeight } from '../game'
+
+const TEXTURES = [
+  asset('textures/leafy_grass/leafy_grass_diff_1k.jpg'),
+  asset('textures/leafy_grass/leafy_grass_nor_gl_1k.jpg'),
+  asset('textures/leafy_grass/leafy_grass_rough_1k.jpg'),
+]
 
 export function Terrain() {
+  const [map, normalMap, roughnessMap] = useTexture(TEXTURES)
+  const normalScale = useMemo(() => new THREE.Vector2(0.75, 0.75), [])
+
+  useEffect(() => {
+    for (const texture of [map, normalMap, roughnessMap]) {
+      texture.wrapS = THREE.RepeatWrapping
+      texture.wrapT = THREE.RepeatWrapping
+      texture.repeat.set(90, 90)
+      texture.anisotropy = 8
+      texture.needsUpdate = true
+    }
+    map.colorSpace = THREE.SRGBColorSpace
+  }, [map, normalMap, roughnessMap])
+
   const geometry = useMemo(() => {
-    const geo = new THREE.PlaneGeometry(440, 440, 128, 128)
+    const geo = new THREE.PlaneGeometry(440, 440, 180, 180)
     geo.rotateX(-Math.PI / 2)
 
     const position = geo.attributes.position as THREE.BufferAttribute
-    const colors = new Float32Array(position.count * 3)
-
-    const valley = new THREE.Color('#46652f')
-    const meadow = new THREE.Color('#6f9a45')
-    const ridge = new THREE.Color('#93a95a')
-    const shade = new THREE.Color()
-
     for (let i = 0; i < position.count; i++) {
-      const x = position.getX(i)
-      const z = position.getZ(i)
-      const y = terrainHeight(x, z)
-      position.setY(i, y)
-
-      const t = THREE.MathUtils.clamp((y + 6) / 16, 0, 1)
-      shade.copy(valley).lerp(meadow, Math.min(1, t * 2))
-      shade.lerp(ridge, Math.max(0, t * 2 - 1))
-      colors[i * 3] = shade.r
-      colors[i * 3 + 1] = shade.g
-      colors[i * 3 + 2] = shade.b
+      position.setY(i, terrainHeight(position.getX(i), position.getZ(i)))
     }
 
-    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
     geo.computeVertexNormals()
     return geo
   }, [])
 
   return (
     <mesh geometry={geometry} receiveShadow>
-      <meshStandardMaterial vertexColors roughness={1} metalness={0} />
+      <meshStandardMaterial
+        map={map}
+        normalMap={normalMap}
+        normalScale={normalScale}
+        roughnessMap={roughnessMap}
+        color="#cfe0b4"
+        roughness={1}
+        metalness={0}
+      />
     </mesh>
   )
 }

@@ -1,5 +1,7 @@
 import * as THREE from 'three'
 
+export const asset = (path: string) => `${import.meta.env.BASE_URL}assets/${path}`
+
 export function terrainHeight(x: number, z: number): number {
   return (
     Math.sin(x * 0.045) * Math.cos(z * 0.037) * 2.4 +

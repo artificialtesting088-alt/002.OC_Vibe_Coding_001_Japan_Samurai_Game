@@ -6,3 +6,11 @@ dist-ssr/
 .env.*
 .DS_Store
 *.log
+
+# local scratch
+.raw/
+.chrome-profile/
+.screenshot*
+.shot.mjs
+.walk.mjs
+.eval*.mjs
