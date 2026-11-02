@@ -7,13 +7,15 @@ import { loadPlayerClips } from '../animations'
 import { normalizeHeight } from '../characters'
 import { asset, cameraLook, playerTransform, terrainHeight } from '../game'
 import { useGame } from '../store'
+import { strikeTargets } from '../combat'
+import { createKatana } from '../weapons'
 
 const MODEL_URL = 'characters/samurai.glb'
 const GRAVITY = 26
 const JUMP_SPEED = 8.6
 const ATTACK_TIME_SCALE = 0.85
 const PUNCH_TIME_SCALE = 1
-const COMBO_WINDOW = 0.9
+const COMBO_WINDOW = 2
 
 type Gait = 'Idle' | 'Walk' | 'Run' | 'Punch' | 'Attack'
 type AttackKind = 'punch' | 'slash'
@@ -25,51 +27,8 @@ function findAction(actions: Record<string, THREE.AnimationAction | null>, name:
   return key ? actions[key] : null
 }
 
-function createKatana() {
-  const katana = new THREE.Group()
-  katana.name = 'Katana'
-
-  const steel = new THREE.MeshStandardMaterial({
-    color: '#e8f2ff',
-    metalness: 1,
-    roughness: 0.16,
-    emissive: new THREE.Color('#3f6b8c'),
-    emissiveIntensity: 0.35,
-  })
-  const wrap = new THREE.MeshStandardMaterial({ color: '#181820', roughness: 0.92, metalness: 0.1 })
-  const bronze = new THREE.MeshStandardMaterial({ color: '#9b7a3a', roughness: 0.34, metalness: 0.9 })
-
-  const blade = new THREE.Mesh(new THREE.BoxGeometry(2.5, 74, 0.75), steel)
-  blade.position.y = 48
-  blade.castShadow = true
-  katana.add(blade)
-
-  const tip = new THREE.Mesh(new THREE.ConeGeometry(1.75, 9, 4), steel)
-  tip.position.y = 89.5
-  tip.rotation.y = Math.PI / 4
-  tip.scale.z = 0.42
-  tip.castShadow = true
-  katana.add(tip)
-
-  const guard = new THREE.Mesh(new THREE.CylinderGeometry(4.1, 4.1, 1.4, 10), bronze)
-  guard.position.y = 11
-  guard.castShadow = true
-  katana.add(guard)
-
-  const grip = new THREE.Mesh(new THREE.CylinderGeometry(1.45, 1.3, 22, 8), wrap)
-  grip.position.y = 0
-  grip.castShadow = true
-  katana.add(grip)
-
-  const pommel = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.8, 2, 8), bronze)
-  pommel.position.y = -11.4
-  pommel.castShadow = true
-  katana.add(pommel)
-
-  return katana
-}
-
 export function Player() {
+  const respawnToken = useGame((state) => state.respawnToken)
   const gltf = useGLTF(asset(MODEL_URL))
   const model = useMemo(() => {
     const clone = cloneSkeleton(gltf.scene)
@@ -183,6 +142,7 @@ export function Player() {
   const attackAction = useRef<THREE.AnimationAction | null>(null)
   const attackKind = useRef<AttackKind | null>(null)
   const attackStart = useRef(0)
+  const attackDidHit = useRef(false)
   const comboReady = useRef(false)
   const lastPunchEnd = useRef(0)
 
@@ -206,6 +166,23 @@ export function Player() {
       hand.remove(katana)
     }
   }, [model, katana])
+
+  useEffect(() => {
+    const root = group.current
+    if (!root) return
+    root.position.set(0, terrainHeight(0, 12), 12)
+    root.rotation.y = 0
+    model.rotation.z = 0
+    verticalVelocity.current = 0
+    grounded.current = true
+    attacking.current = false
+    attackKind.current = null
+    attackDidHit.current = false
+    attackQueued.current = false
+    katana.visible = false
+    aura.current.visible = false
+    auraLight.current.intensity = 0
+  }, [respawnToken, model, katana])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -248,6 +225,23 @@ export function Player() {
     const root = group.current
     if (!root || !model) return
 
+    if (useGame.getState().health <= 0) {
+      attacking.current = false
+      attackKind.current = null
+      attackQueued.current = false
+      katana.visible = false
+      aura.current.visible = false
+      auraLight.current.intensity = 0
+      model.rotation.z = THREE.MathUtils.lerp(model.rotation.z, -1.35, Math.min(1, dt * 4))
+      play('Idle')
+      playerTransform.position.copy(root.position)
+      playerTransform.moving = false
+      playerTransform.sprinting = false
+      playerTransform.speed = 0
+      return
+    }
+    model.rotation.z = THREE.MathUtils.lerp(model.rotation.z, 0, Math.min(1, dt * 8))
+
     const dialogOpen = !!useGame.getState().dialog
     const forward = (keys.current['KeyW'] ? 1 : 0) - (keys.current['KeyS'] ? 1 : 0)
     const strafe = (keys.current['KeyD'] ? 1 : 0) - (keys.current['KeyA'] ? 1 : 0)
@@ -268,6 +262,7 @@ export function Player() {
         attackKind.current = kind
         attackStart.current = now
         attackAction.current = action
+        attackDidHit.current = false
         if (action) play(kind === 'punch' ? 'Punch' : 'Attack')
       }
     }
@@ -331,6 +326,19 @@ export function Player() {
         clip && clip.duration > 0 && action
           ? Math.min(1, action.time / clip.duration)
           : Math.min(1, elapsed / duration)
+
+      if (!attackDidHit.current && phase >= (kind === 'punch' ? 0.3 : 0.5)) {
+        attackDidHit.current = true
+        const forward = new THREE.Vector3(Math.sin(root.rotation.y), 0, Math.cos(root.rotation.y))
+        const origin = new THREE.Vector3(root.position.x, root.position.y + 1, root.position.z)
+        strikeTargets(
+          origin,
+          forward,
+          kind === 'punch'
+            ? { range: 1.9, arc: 1.35, damage: 12, knockback: 0.65 }
+            : { range: 2.9, arc: 1.9, damage: 28, knockback: 1.35 },
+        )
+      }
 
       if (kind === 'slash') {
         const draw = THREE.MathUtils.smoothstep(phase, 0, 0.12)

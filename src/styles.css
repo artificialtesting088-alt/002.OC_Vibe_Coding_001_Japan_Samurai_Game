@@ -288,3 +288,53 @@ canvas {
   background: linear-gradient(90deg, var(--crimson), var(--gold));
   transition: width 0.2s ease;
 }
+
+.hud__hurt {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(200, 53, 43, 0) 38%, rgba(150, 20, 16, 0.62) 100%);
+  animation: hurt-fade 0.28s ease-out forwards;
+}
+
+@keyframes hurt-fade {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.hud__death {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: radial-gradient(circle at center, rgba(30, 8, 8, 0.35), rgba(10, 6, 6, 0.86));
+  text-align: center;
+}
+
+.hud__death h2 {
+  margin: 0;
+  font-size: 46px;
+  letter-spacing: 0.42em;
+  font-weight: 600;
+  color: var(--crimson);
+  text-shadow: 0 6px 40px rgba(0, 0, 0, 0.8);
+}
+
+.hud__death p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  letter-spacing: 0.18em;
+}
+
+.hud__death span {
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}

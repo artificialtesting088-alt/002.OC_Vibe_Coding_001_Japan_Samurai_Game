@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { asset, mulberry32, terrainHeight } from '../game'
+import { ENEMIES } from '../enemies'
 import { HOUSE_SPOTS } from '../layout'
 import { NPCS } from '../npcs'
 
@@ -11,6 +12,7 @@ const KEEPOUT = [
   { x: 0, z: -36, r: 8 },
   ...HOUSE_SPOTS.map((house) => ({ x: house.position[0], z: house.position[1], r: 6.5 })),
   ...NPCS.map((npc) => ({ x: npc.position[0], z: npc.position[1], r: 3 })),
+  ...ENEMIES.map((enemy) => ({ x: enemy.position[0], z: enemy.position[1], r: 4 })),
 ]
 
 function isFree(x: number, z: number) {

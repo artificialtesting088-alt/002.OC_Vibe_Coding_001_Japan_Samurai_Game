@@ -1,29 +1,48 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useProgress } from '@react-three/drei'
 import { useGame } from '../store'
 
 export function Hud() {
   const health = useGame((state) => state.health)
+  const hurtAt = useGame((state) => state.hurtAt)
   const locked = useGame((state) => state.locked)
   const quest = useGame((state) => state.quest)
   const dialog = useGame((state) => state.dialog)
   const nearNpc = useGame((state) => state.nearNpc)
   const { active, progress } = useProgress()
+  const [hurt, setHurt] = useState(false)
+
+  useEffect(() => {
+    if (!hurtAt) return
+    setHurt(true)
+    const timeout = window.setTimeout(() => setHurt(false), 280)
+    return () => window.clearTimeout(timeout)
+  }, [hurtAt])
 
   useEffect(() => {
     const onChange = () => {
       useGame.getState().setLocked(!!document.pointerLockElement)
     }
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.code === 'KeyE' && useGame.getState().dialog) {
-        useGame.getState().advanceDialog()
+      const game = useGame.getState()
+      if (game.health <= 0) {
+        if (event.code === 'KeyR') game.respawn()
+        return
       }
-      if (event.code === 'Escape' && useGame.getState().dialog) {
-        useGame.getState().closeDialog()
+      if (event.code === 'KeyE' && game.dialog) {
+        game.advanceDialog()
+      }
+      if (event.code === 'Escape' && game.dialog) {
+        game.closeDialog()
       }
     }
     const onClick = () => {
-      if (useGame.getState().dialog) useGame.getState().advanceDialog()
+      const game = useGame.getState()
+      if (game.health <= 0) {
+        game.respawn()
+        return
+      }
+      if (game.dialog) game.advanceDialog()
     }
 
     document.addEventListener('pointerlockchange', onChange)
@@ -78,7 +97,7 @@ export function Hud() {
         <kbd>Esc</kbd> lepas kursor
       </div>
 
-      {!locked && !dialog && (
+      {!locked && !dialog && health > 0 && (
         <div className="hud__lock">
           <div className="hud__lock-card">
             <h2>KLIK UNTUK MULAI</h2>
@@ -86,6 +105,16 @@ export function Hud() {
           </div>
         </div>
       )}
+
+      {health <= 0 && (
+        <div className="hud__death">
+          <h2>GUGUR</h2>
+          <p>Tekan R atau klik untuk bangkit kembali.</p>
+          <span>Jalan Angin belum berakhir.</span>
+        </div>
+      )}
+
+      {hurt && <div className="hud__hurt" />}
 
       {active && (
         <div className="hud__loading">

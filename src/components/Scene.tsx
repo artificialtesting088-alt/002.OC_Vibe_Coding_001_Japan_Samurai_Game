@@ -6,6 +6,7 @@ import { Structures } from './Structures'
 import { Petals } from './Petals'
 import { JacarandaTrees, Boulders } from './Trees'
 import { NPCs } from './NPC'
+import { Enemies } from './Enemies'
 import { CameraRig, Player } from './Player'
 import { Effects } from './Effects'
 
@@ -48,6 +49,7 @@ export function Scene() {
       <Boulders />
       <Structures />
       <NPCs />
+      <Enemies />
       <Petals />
       <Player />
       <CameraRig />
