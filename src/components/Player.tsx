@@ -146,6 +146,10 @@ export function Player() {
   const attackDidHit = useRef(false)
   const comboReady = useRef(false)
   const lastPunchEnd = useRef(0)
+  const guardMouse = useRef(false)
+  const guardKey = useRef(false)
+  const guardShield = useRef<THREE.Group>(null!)
+  const guardMaterial = useRef<THREE.MeshBasicMaterial>(null!)
 
   useEffect(() => {
     model.traverse((child) => {
@@ -180,12 +184,21 @@ export function Player() {
     attackKind.current = null
     attackDidHit.current = false
     attackQueued.current = false
+    guardMouse.current = false
+    guardKey.current = false
+    playerTransform.guarding = false
+    playerTransform.parryUntil = 0
     katana.visible = false
     aura.current.visible = false
     auraLight.current.intensity = 0
   }, [respawnToken, model, katana])
 
   useEffect(() => {
+    const startGuard = () => {
+      if (guardMouse.current || guardKey.current) return
+      playerTransform.guarding = true
+      playerTransform.parryUntil = performance.now() / 1000 + 0.22
+    }
     const onKeyDown = (event: KeyboardEvent) => {
       unlockAudio()
       if (event.code === 'KeyM' && !event.repeat) {
@@ -195,6 +208,10 @@ export function Player() {
         setAudioMuted(muted)
         return
       }
+      if (event.code === 'KeyQ' && !event.repeat) {
+        startGuard()
+        guardKey.current = true
+      }
       keys.current[event.code] = true
       if (event.code === 'Space') {
         event.preventDefault()
@@ -203,29 +220,49 @@ export function Player() {
       if (event.code === 'KeyF' && !event.repeat) attackQueued.current = true
     }
     const onKeyUp = (event: KeyboardEvent) => {
+      if (event.code === 'KeyQ') guardKey.current = false
       keys.current[event.code] = false
     }
     const onMouseDown = (event: MouseEvent) => {
       unlockAudio()
+      if (event.button === 2) {
+        if (!document.pointerLockElement) return
+        if (useGame.getState().dialog) return
+        startGuard()
+        guardMouse.current = true
+        return
+      }
       if (event.button !== 0) return
       if (!document.pointerLockElement) return
       if (useGame.getState().dialog) return
       attackQueued.current = true
     }
+    const onMouseUp = (event: MouseEvent) => {
+      if (event.button === 2) guardMouse.current = false
+    }
+    const onContextMenu = (event: MouseEvent) => {
+      if (document.pointerLockElement) event.preventDefault()
+    }
     const onBlur = () => {
       keys.current = {}
       jumpQueued.current = false
       attackQueued.current = false
+      guardMouse.current = false
+      guardKey.current = false
     }
 
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
     window.addEventListener('mousedown', onMouseDown)
+    window.addEventListener('mouseup', onMouseUp)
+    window.addEventListener('contextmenu', onContextMenu)
     window.addEventListener('blur', onBlur)
     return () => {
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
       window.removeEventListener('mousedown', onMouseDown)
+      window.removeEventListener('mouseup', onMouseUp)
+      window.removeEventListener('contextmenu', onContextMenu)
       window.removeEventListener('blur', onBlur)
     }
   }, [])
@@ -239,6 +276,8 @@ export function Player() {
       attacking.current = false
       attackKind.current = null
       attackQueued.current = false
+      playerTransform.guarding = false
+      guardShield.current.visible = false
       katana.visible = false
       aura.current.visible = false
       auraLight.current.intensity = 0
@@ -257,10 +296,12 @@ export function Player() {
     const strafe = (keys.current['KeyD'] ? 1 : 0) - (keys.current['KeyA'] ? 1 : 0)
     const moving = forward !== 0 || strafe !== 0
     const wantsSprint = !!(keys.current['ShiftLeft'] || keys.current['ShiftRight'])
+    const wantsGuard = guardMouse.current || guardKey.current
+    const guardActive = wantsGuard && !dialogOpen && !attacking.current && grounded.current
 
     if (attackQueued.current) {
       attackQueued.current = false
-      if (!attacking.current && !dialogOpen && grounded.current) {
+      if (!attacking.current && !dialogOpen && grounded.current && !guardActive) {
         const now = state.clock.elapsedTime
         const punch = findAction(actions, 'Punch_Jab')
         const sword = findAction(actions, 'Sword_Attack')
@@ -282,8 +323,8 @@ export function Player() {
     }
 
     const isAttacking = attacking.current
-    const sprinting = wantsSprint && moving && !dialogOpen && !isAttacking
-    const speed = dialogOpen || isAttacking ? 0 : sprinting ? 8.8 : moving ? 4.9 : 0
+    const sprinting = wantsSprint && moving && !dialogOpen && !isAttacking && !guardActive
+    const speed = dialogOpen || isAttacking ? 0 : guardActive ? 2.6 : sprinting ? 8.8 : moving ? 4.9 : 0
 
     if (moving && !dialogOpen && !isAttacking) {
       const yaw = cameraLook.yaw
@@ -397,8 +438,21 @@ export function Player() {
       auraLight.current.intensity = 0
     }
 
+    if (guardShield.current) {
+      guardShield.current.visible = guardActive
+      if (guardActive) {
+        const pulse = 1 + Math.sin(state.clock.elapsedTime * 9) * 0.035
+        guardShield.current.scale.setScalar(pulse)
+        if (guardMaterial.current) {
+          guardMaterial.current.opacity = 0.2 + Math.sin(state.clock.elapsedTime * 9) * 0.05
+        }
+      }
+    }
+
     const stillAttacking = attacking.current
     playerTransform.position.copy(root.position)
+    playerTransform.yaw = root.rotation.y
+    playerTransform.guarding = guardActive
     playerTransform.moving = moving && !stillAttacking
     playerTransform.sprinting = sprinting
     playerTransform.speed = speed
@@ -418,6 +472,21 @@ export function Player() {
   return (
     <group ref={group} position={[0, terrainHeight(0, 12), 12]}>
       <primitive object={model} />
+      <group ref={guardShield} visible={false} position={[0, 1.08, 0.72]}>
+        <mesh>
+          <ringGeometry args={[0.52, 0.82, 36]} />
+          <meshBasicMaterial
+            ref={guardMaterial}
+            color="#ffd58c"
+            transparent
+            opacity={0.22}
+            depthWrite={false}
+            side={THREE.DoubleSide}
+            blending={THREE.AdditiveBlending}
+            toneMapped={false}
+          />
+        </mesh>
+      </group>
       <group ref={aura} visible={false} position={[0, 0.92, 0.55]} rotation={[0.08, 0.12, -0.35]}>
         <mesh>
           <ringGeometry args={[0.62, 1, 42, 1, 0, 2]} />

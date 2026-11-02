@@ -151,6 +151,17 @@ export function playHit() {
   noiseSweep(0.07, 3200, 1400, 0.1)
 }
 
+export function playBlock() {
+  noiseSweep(0.08, 2400, 780, 0.09)
+  tone(320, 170, 0.13, 'square', 0.06)
+}
+
+export function playParry() {
+  tone(1320, 1320, 0.38, 'sine', 0.09)
+  tone(1980, 1980, 0.28, 'triangle', 0.05, 0.03)
+  noiseSweep(0.12, 5200, 2100, 0.08)
+}
+
 export function playHurt() {
   tone(96, 48, 0.26, 'sawtooth', 0.09)
   noiseSweep(0.14, 520, 120, 0.08, 'lowpass')

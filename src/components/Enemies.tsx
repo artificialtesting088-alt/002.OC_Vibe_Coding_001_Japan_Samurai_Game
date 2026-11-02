@@ -10,7 +10,7 @@ import { ENEMIES, GUARDIAN, type EnemyDef } from '../enemies'
 import { asset, playerTransform, terrainHeight } from '../game'
 import { useGame } from '../store'
 import { createKatana } from '../weapons'
-import { playAwaken, playDeath, playHurt } from '../audio'
+import { playAwaken, playBlock, playDeath, playHurt, playParry } from '../audio'
 
 const MAX_HEALTH = 50
 const AGGRO_RANGE = 14
@@ -331,8 +331,27 @@ export function Enemy({ enemy }: { enemy: EnemyDef }) {
       if (!attackLanded.current && phase >= 0.55) {
         attackLanded.current = true
         if (distance <= attackRange + 0.6) {
-          useGame.getState().damagePlayer(attackDamage)
-          playHurt()
+          const toEnemyX = root.position.x - playerTransform.position.x
+          const toEnemyZ = root.position.z - playerTransform.position.z
+          const toEnemyLength = Math.hypot(toEnemyX, toEnemyZ) || 1
+          const facing =
+            (toEnemyX / toEnemyLength) * Math.sin(playerTransform.yaw) +
+            (toEnemyZ / toEnemyLength) * Math.cos(playerTransform.yaw)
+          const guarding = playerTransform.guarding && facing > 0.15
+
+          if (guarding && performance.now() / 1000 <= playerTransform.parryUntil) {
+            stagger.current = 1.15
+            attacking.current = false
+            attackCooldown.current = 1.2
+            katana.visible = false
+            playParry()
+          } else if (guarding) {
+            useGame.getState().damagePlayer(Math.max(1, Math.round(attackDamage * 0.3)))
+            playBlock()
+          } else {
+            useGame.getState().damagePlayer(attackDamage)
+            playHurt()
+          }
         }
       }
 

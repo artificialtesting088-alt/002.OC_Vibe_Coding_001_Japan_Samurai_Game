@@ -26,6 +26,9 @@ export const playerTransform = {
   moving: false,
   sprinting: false,
   speed: 0,
+  yaw: 0,
+  guarding: false,
+  parryUntil: 0,
 }
 
 export const cameraLook = {

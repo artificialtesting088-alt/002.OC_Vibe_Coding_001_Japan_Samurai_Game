@@ -161,6 +161,7 @@ export function Hud() {
         <kbd>Shift</kbd> lari &nbsp;·&nbsp;
         <kbd>Space</kbd> lompat &nbsp;·&nbsp;
         <kbd>F</kbd> / <kbd>Klik</kbd> pukul, ulangi tebas &nbsp;·&nbsp;
+        <kbd>Klik Kanan</kbd> / <kbd>Q</kbd> blokir & parry &nbsp;·&nbsp;
         <kbd>E</kbd> bicara &nbsp;·&nbsp;
         <kbd>M</kbd> suara &nbsp;·&nbsp;
         <kbd>Esc</kbd> lepas kursor
