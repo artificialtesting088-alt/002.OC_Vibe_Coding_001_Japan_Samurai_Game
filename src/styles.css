@@ -196,6 +196,76 @@ canvas {
   opacity: 0.75;
 }
 
+.hud__lock-card--paused {
+  width: min(380px, 86vw);
+  padding: 28px 36px 24px;
+  pointer-events: none;
+}
+
+.hud__pause {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+  pointer-events: none;
+}
+
+.hud__setting {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  opacity: 0.8;
+  pointer-events: auto;
+}
+
+.hud__setting b {
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.hud__setting input {
+  width: 100%;
+  accent-color: var(--gold);
+  cursor: pointer;
+}
+
+.hud__toggle,
+.hud__restart {
+  pointer-events: auto;
+  padding: 9px 14px;
+  border: 1px solid rgba(245, 234, 214, 0.24);
+  border-radius: 2px;
+  background: rgba(15, 17, 22, 0.6);
+  color: var(--paper);
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.hud__toggle:hover,
+.hud__restart:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.hud__restart {
+  border-color: rgba(200, 53, 43, 0.4);
+}
+
+.hud__pause-controls {
+  margin-top: 18px;
+  font-size: 10px;
+  line-height: 1.9;
+  letter-spacing: 0.06em;
+  opacity: 0.55;
+}
+
 .hud__crosshair {
   position: absolute;
   top: 50%;

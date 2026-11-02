@@ -10,6 +10,8 @@ export type Dialog = {
 type GameState = {
   health: number
   locked: boolean
+  hasStarted: boolean
+  sensitivity: number
   quest: string
   dialog: Dialog | null
   nearNpc: string | null
@@ -24,6 +26,7 @@ type GameState = {
   lastDialogClose: number
   muted: boolean
   setLocked: (locked: boolean) => void
+  setSensitivity: (sensitivity: number) => void
   openDialog: (name: string, lines: string[]) => void
   advanceDialog: () => void
   closeDialog: () => void
@@ -38,9 +41,23 @@ type GameState = {
   setMuted: (muted: boolean) => void
 }
 
+function loadSensitivity() {
+  try {
+    if (typeof window === 'undefined') return 1
+    const raw = window.localStorage.getItem('kaze-sensitivity')
+    if (raw === null) return 1
+    const value = Number(raw)
+    return Number.isFinite(value) ? Math.min(2, Math.max(0.4, value)) : 1
+  } catch {
+    return 1
+  }
+}
+
 export const useGame = create<GameState>((set) => ({
   health: 100,
   locked: false,
+  hasStarted: false,
+  sensitivity: loadSensitivity(),
   quest: `Bersihkan kamp bandit di timur (0/${ENEMIES.length}).`,
   dialog: null,
   nearNpc: null,
@@ -54,7 +71,18 @@ export const useGame = create<GameState>((set) => ({
   nearAltar: false,
   lastDialogClose: 0,
   muted: false,
-  setLocked: (locked) => set({ locked }),
+  setLocked: (locked) =>
+    set((state) => ({
+      locked,
+      hasStarted: state.hasStarted || locked,
+    })),
+  setSensitivity: (sensitivity) => {
+    const next = Math.min(2, Math.max(0.4, Math.round(sensitivity * 10) / 10))
+    try {
+      window.localStorage.setItem('kaze-sensitivity', String(next))
+    } catch {}
+    set({ sensitivity: next })
+  },
   openDialog: (name, lines) => set({ dialog: { name, lines, index: 0 } }),
   advanceDialog: () =>
     set((state) => {

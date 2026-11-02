@@ -3,13 +3,16 @@ import { useProgress } from '@react-three/drei'
 import { cameraLook, playerTransform } from '../game'
 import { getObjective } from '../objective'
 import { useGame } from '../store'
-import { setAmbientEnabled } from '../audio'
+import { setAmbientEnabled, setAudioMuted } from '../audio'
 
 export function Hud() {
   const health = useGame((state) => state.health)
   const hurtAt = useGame((state) => state.hurtAt)
   const locked = useGame((state) => state.locked)
   const quest = useGame((state) => state.quest)
+  const hasStarted = useGame((state) => state.hasStarted)
+  const sensitivity = useGame((state) => state.sensitivity)
+  const setSensitivity = useGame((state) => state.setSensitivity)
   const dialog = useGame((state) => state.dialog)
   const nearNpc = useGame((state) => state.nearNpc)
   const enemiesDefeated = useGame((state) => state.enemiesDefeated)
@@ -169,9 +172,51 @@ export function Hud() {
 
       {!locked && !dialog && health > 0 && (
         <div className="hud__lock">
-          <div className="hud__lock-card">
-            <h2>KLIK UNTUK MULAI</h2>
-            <p>Kunci kursor untuk menjelajah Jepang feodal</p>
+          <div className={`hud__lock-card${hasStarted ? ' hud__lock-card--paused' : ''}`}>
+            <h2>{hasStarted ? 'JEDA' : 'KLIK UNTUK MULAI'}</h2>
+            <p>{hasStarted ? 'Klik untuk melanjutkan' : 'Kunci kursor untuk menjelajah Jepang feodal'}</p>
+
+            {hasStarted && (
+              <>
+                <div className="hud__pause">
+                  <label className="hud__setting">
+                    <span>
+                      Sensitivitas <b>{sensitivity.toFixed(1)}×</b>
+                    </span>
+                    <input
+                      type="range"
+                      min={0.4}
+                      max={2}
+                      step={0.1}
+                      value={sensitivity}
+                      onChange={(event) => setSensitivity(Number(event.target.value))}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className="hud__toggle"
+                    onClick={() => {
+                      const game = useGame.getState()
+                      const next = !game.muted
+                      game.setMuted(next)
+                      setAudioMuted(next)
+                    }}
+                  >
+                    Suara: {muted ? 'Mati' : 'Aktif'}
+                  </button>
+                  <button type="button" className="hud__restart" onClick={() => window.location.reload()}>
+                    Mulai ulang perjalanan
+                  </button>
+                </div>
+                <div className="hud__pause-controls">
+                  WASD gerak · Shift lari · Space lompat
+                  <br />
+                  F / Klik serang · Klik Kanan / Q blokir & parry
+                  <br />
+                  E bicara · M suara · Esc jeda
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

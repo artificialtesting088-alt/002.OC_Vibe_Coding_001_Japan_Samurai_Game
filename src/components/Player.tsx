@@ -522,6 +522,7 @@ export function Player() {
 
 export function CameraRig() {
   const { camera, gl } = useThree()
+  const sensitivity = useGame((state) => state.sensitivity)
   const target = useMemo(() => new THREE.Vector3(), [])
   const desired = useMemo(() => new THREE.Vector3(), [])
 
@@ -534,11 +535,19 @@ export function CameraRig() {
     }
     const onMouseMove = (event: MouseEvent) => {
       if (document.pointerLockElement === element) {
-        cameraLook.yaw -= event.movementX * 0.0024
-        cameraLook.pitch = THREE.MathUtils.clamp(cameraLook.pitch + event.movementY * 0.0022, 0.02, 1.05)
+        cameraLook.yaw -= event.movementX * 0.0024 * sensitivity
+        cameraLook.pitch = THREE.MathUtils.clamp(
+          cameraLook.pitch + event.movementY * 0.0022 * sensitivity,
+          0.02,
+          1.05,
+        )
       } else if (event.buttons & 2) {
-        cameraLook.yaw -= event.movementX * 0.003
-        cameraLook.pitch = THREE.MathUtils.clamp(cameraLook.pitch + event.movementY * 0.0025, 0.02, 1.05)
+        cameraLook.yaw -= event.movementX * 0.003 * sensitivity
+        cameraLook.pitch = THREE.MathUtils.clamp(
+          cameraLook.pitch + event.movementY * 0.0025 * sensitivity,
+          0.02,
+          1.05,
+        )
       }
     }
     const onContextMenu = (event: Event) => event.preventDefault()
@@ -551,7 +560,7 @@ export function CameraRig() {
       window.removeEventListener('mousemove', onMouseMove)
       element.removeEventListener('contextmenu', onContextMenu)
     }
-  }, [gl])
+  }, [gl, sensitivity])
 
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.05)
