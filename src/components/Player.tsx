@@ -74,20 +74,11 @@ export function Player() {
     (nextGait: Gait) => {
       const walk = findAction(actions, 'Walk')
       const run = findAction(actions, 'Run')
-      const bakedIdle = findAction(actions, 'Idle_Loop')
       const punch = findAction(actions, 'Punch_Jab')
       const attack = findAction(actions, 'Sword_Attack')
 
       const next =
-        nextGait === 'Punch'
-          ? punch
-          : nextGait === 'Attack'
-            ? attack
-            : nextGait === 'Run'
-              ? run
-              : nextGait === 'Walk'
-                ? walk
-                : (bakedIdle ?? walk)
+        nextGait === 'Punch' ? punch : nextGait === 'Attack' ? attack : nextGait === 'Run' ? run : walk
       if (!next) return
       if (gait.current === nextGait && currentAction.current?.isScheduled()) return
       const previous = currentAction.current
@@ -95,7 +86,7 @@ export function Player() {
       if (next === previous) {
         if (!next.isScheduled()) next.play()
         next.setEffectiveWeight(1)
-        if (nextGait === 'Idle' && next === walk && !bakedIdle) {
+        if (nextGait === 'Idle' && next === walk) {
           next.paused = true
           next.time = idleTime
         } else {
@@ -117,9 +108,9 @@ export function Player() {
       } else {
         next.setLoop(THREE.LoopRepeat, Infinity)
         next.timeScale = 1
-        const restingOnWalk = nextGait === 'Idle' && next === walk && !bakedIdle
-        next.paused = restingOnWalk
-        if (restingOnWalk) next.time = idleTime
+        const restingIdle = nextGait === 'Idle' && next === walk
+        next.paused = restingIdle
+        if (restingIdle) next.time = idleTime
       }
       next.play()
       previous?.fadeOut(0.18)
