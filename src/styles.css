@@ -338,3 +338,59 @@ canvas {
   text-transform: uppercase;
   opacity: 0.55;
 }
+
+.hud__objective {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 14px 7px 10px;
+  border: 1px solid rgba(245, 234, 214, 0.16);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(15, 17, 22, 0.62), rgba(15, 17, 22, 0.3));
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+
+.hud__compass {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(245, 234, 214, 0.2);
+  border-radius: 50%;
+  background: rgba(15, 17, 22, 0.55);
+}
+
+.hud__compass-arrow {
+  width: 9px;
+  height: 12px;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  background: var(--gold);
+  filter: drop-shadow(0 0 5px rgba(231, 180, 90, 0.55));
+  transition: transform 0.08s linear;
+}
+
+.hud__objective-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 74px;
+}
+
+.hud__objective-copy b {
+  font-size: 9px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.hud__objective-copy span {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  opacity: 0.68;
+}

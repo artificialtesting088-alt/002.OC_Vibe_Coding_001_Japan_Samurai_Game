@@ -7,7 +7,7 @@ import { loadPlayerClips } from '../animations'
 import { normalizeHeight } from '../characters'
 import { asset, cameraLook, playerTransform, terrainHeight } from '../game'
 import { useGame } from '../store'
-import { strikeTargets } from '../combat'
+import { nearestTargetDirection, strikeTargets } from '../combat'
 import { createKatana } from '../weapons'
 
 const MODEL_URL = 'characters/samurai.glb'
@@ -257,6 +257,8 @@ export function Player() {
         const combo = comboReady.current && now - lastPunchEnd.current <= COMBO_WINDOW
         const kind: AttackKind = combo || !punch ? 'slash' : 'punch'
         const action = kind === 'punch' ? punch : sword
+        const aim = nearestTargetDirection(root.position, 5.5)
+        if (aim) root.rotation.y = Math.atan2(aim.x, aim.z)
         comboReady.current = false
         attacking.current = true
         attackKind.current = kind

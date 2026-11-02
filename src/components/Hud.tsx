@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useProgress } from '@react-three/drei'
+import { cameraLook, playerTransform } from '../game'
+import { getObjective } from '../objective'
 import { useGame } from '../store'
 
 export function Hud() {
@@ -9,8 +11,40 @@ export function Hud() {
   const quest = useGame((state) => state.quest)
   const dialog = useGame((state) => state.dialog)
   const nearNpc = useGame((state) => state.nearNpc)
+  const enemiesDefeated = useGame((state) => state.enemiesDefeated)
+  const enemiesTotal = useGame((state) => state.enemiesTotal)
+  const questRewarded = useGame((state) => state.questRewarded)
   const { active, progress } = useProgress()
   const [hurt, setHurt] = useState(false)
+  const arrowRef = useRef<HTMLSpanElement>(null)
+  const distanceRef = useRef<HTMLSpanElement>(null)
+  const objective = useMemo(
+    () => getObjective(enemiesDefeated, enemiesTotal, questRewarded),
+    [enemiesDefeated, enemiesTotal, questRewarded],
+  )
+
+  useEffect(() => {
+    let frame = 0
+    const update = () => {
+      const [tx, tz] = objective.position
+      const dx = tx - playerTransform.position.x
+      const dz = tz - playerTransform.position.z
+      const distance = Math.hypot(dx, dz) || 0.001
+      const forwardX = -Math.sin(cameraLook.yaw)
+      const forwardZ = -Math.cos(cameraLook.yaw)
+      const rightX = -forwardZ
+      const rightZ = forwardX
+      const angle = Math.atan2(
+        (dx * rightX + dz * rightZ) / distance,
+        (dx * forwardX + dz * forwardZ) / distance,
+      )
+      if (arrowRef.current) arrowRef.current.style.transform = `rotate(${angle}rad)`
+      if (distanceRef.current) distanceRef.current.textContent = `${Math.round(distance)} m`
+      frame = requestAnimationFrame(update)
+    }
+    update()
+    return () => cancelAnimationFrame(frame)
+  }, [objective])
 
   useEffect(() => {
     if (!hurtAt) return
@@ -65,6 +99,16 @@ export function Hud() {
       <div className="hud__quest">
         <b>Tujuan</b>
         {quest}
+      </div>
+
+      <div className="hud__objective">
+        <div className="hud__compass">
+          <span ref={arrowRef} className="hud__compass-arrow" />
+        </div>
+        <div className="hud__objective-copy">
+          <b>{objective.label}</b>
+          <span ref={distanceRef}>—</span>
+        </div>
       </div>
 
       <div className="hud__vitals">

@@ -53,3 +53,24 @@ export function strikeTargets(origin: THREE.Vector3, forward: THREE.Vector3, str
 
   return hits
 }
+
+export function nearestTargetDirection(origin: THREE.Vector3, maxDistance: number) {
+  let bestDistance = maxDistance
+  let bestX = 0
+  let bestZ = 0
+  let found = false
+
+  for (const target of targets) {
+    if (!target.alive) continue
+    const dx = target.position.x - origin.x
+    const dz = target.position.z - origin.z
+    const distance = Math.hypot(dx, dz)
+    if (distance > bestDistance) continue
+    bestDistance = distance
+    bestX = dx
+    bestZ = dz
+    found = true
+  }
+
+  return found ? new THREE.Vector3(bestX, 0, bestZ).normalize() : null
+}
