@@ -115,9 +115,34 @@ export function NPC({ npc }: { npc: NpcDef }) {
       if (event.code !== 'KeyE') return
       const root = group.current
       if (!root) return
-      if (useGame.getState().dialog) return
+      const game = useGame.getState()
+      if (game.dialog) return
+      if (Date.now() - game.lastDialogClose < 350) return
       if (root.position.distanceTo(playerTransform.position) <= TALK_DISTANCE) {
-        useGame.getState().openDialog(npc.name, npc.lines)
+        let lines = npc.lines
+
+        if (npc.id === 'kenshin') {
+          if (game.questRewarded) {
+            lines = [
+              'Kamp timur sudah sunyi. Kabar itu sampai ke telinga semua orang di lembah.',
+              'Kuil di utara menunggumu. Jangan biarkan angin menunggu terlalu lama.',
+            ]
+          } else if (game.enemiesDefeated >= game.enemiesTotal) {
+            lines = [
+              'Kau kembali dengan darah di pedangmu. Kamp di timur kini sunyi.',
+              'Lembah berutang nyawa padamu. Luka-lukamu kututup; anggap ini upah pertama.',
+              'Jalan ke kuil utara terbuka. Pergilah sebelum angin berubah arah.',
+            ]
+            game.completeQuest()
+          } else if (game.enemiesDefeated > 0) {
+            lines = [
+              `${game.enemiesDefeated} dari ${game.enemiesTotal} bandit telah jatuh. Kamp itu masih berdenyut.`,
+              ...npc.lines.slice(1),
+            ]
+          }
+        }
+
+        game.openDialog(npc.name, lines)
       }
     }
 

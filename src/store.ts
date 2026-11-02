@@ -17,6 +17,8 @@ type GameState = {
   enemiesTotal: number
   hurtAt: number
   respawnToken: number
+  questRewarded: boolean
+  lastDialogClose: number
   setLocked: (locked: boolean) => void
   openDialog: (name: string, lines: string[]) => void
   advanceDialog: () => void
@@ -24,6 +26,7 @@ type GameState = {
   setNearNpc: (nearNpc: string | null) => void
   damagePlayer: (amount: number) => void
   reportEnemyDefeated: () => void
+  completeQuest: () => void
   respawn: () => void
 }
 
@@ -37,15 +40,21 @@ export const useGame = create<GameState>((set) => ({
   enemiesTotal: ENEMIES.length,
   hurtAt: 0,
   respawnToken: 0,
+  questRewarded: false,
+  lastDialogClose: 0,
   setLocked: (locked) => set({ locked }),
   openDialog: (name, lines) => set({ dialog: { name, lines, index: 0 } }),
   advanceDialog: () =>
     set((state) => {
       if (!state.dialog) return state
       const index = state.dialog.index + 1
-      return { dialog: index >= state.dialog.lines.length ? null : { ...state.dialog, index } }
+      const closed = index >= state.dialog.lines.length
+      return {
+        dialog: closed ? null : { ...state.dialog, index },
+        lastDialogClose: closed ? Date.now() : state.lastDialogClose,
+      }
     }),
-  closeDialog: () => set({ dialog: null }),
+  closeDialog: () => set({ dialog: null, lastDialogClose: Date.now() }),
   setNearNpc: (nearNpc) => set({ nearNpc }),
   damagePlayer: (amount) =>
     set((state) =>
@@ -64,10 +73,20 @@ export const useGame = create<GameState>((set) => ({
         enemiesDefeated,
         quest:
           enemiesDefeated >= state.enemiesTotal
-            ? 'Kamp bandit bersih. Jelajahi kuil di balik hutan bambu.'
+            ? 'Kembali ke Kapten Kenshin di gerbang torii.'
             : `Bersihkan kamp bandit di timur (${enemiesDefeated}/${state.enemiesTotal}).`,
       }
     }),
+  completeQuest: () =>
+    set((state) =>
+      state.questRewarded
+        ? state
+        : {
+            health: 100,
+            questRewarded: true,
+            quest: 'Kamp aman. Jelajahi kuil di balik hutan bambu.',
+          },
+    ),
   respawn: () =>
     set((state) => ({
       health: 100,

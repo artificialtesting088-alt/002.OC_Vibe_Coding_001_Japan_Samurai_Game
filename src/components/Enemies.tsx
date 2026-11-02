@@ -45,6 +45,8 @@ export function Enemy({ enemy }: { enemy: EnemyDef }) {
   const group = useRef<THREE.Group>(null!)
   const bar = useRef<THREE.Group>(null!)
   const fill = useRef<THREE.Mesh>(null!)
+  const telegraph = useRef<THREE.Group>(null!)
+  const telegraphMaterial = useRef<THREE.MeshBasicMaterial>(null!)
   const home = useMemo(() => new THREE.Vector3(enemy.position[0], 0, enemy.position[1]), [enemy])
   const health = useRef(MAX_HEALTH)
   const alive = useRef(true)
@@ -217,6 +219,7 @@ export function Enemy({ enemy }: { enemy: EnemyDef }) {
 
     target.position.copy(root.position)
     target.alive = alive.current
+    telegraph.current.visible = false
 
     if (hitFlash.current > 0) {
       hitFlash.current = Math.max(0, hitFlash.current - dt * 5)
@@ -292,6 +295,12 @@ export function Enemy({ enemy }: { enemy: EnemyDef }) {
       const phase = clip && clip.duration > 0 && action ? Math.min(1, action.time / clip.duration) : Math.min(1, elapsed / duration)
 
       katana.visible = phase < 0.96
+      if (phase < 0.55) {
+        const warning = phase / 0.55
+        telegraph.current.visible = true
+        telegraph.current.scale.setScalar(1 + warning * 0.7)
+        telegraphMaterial.current.opacity = 0.15 + warning * 0.55
+      }
       if (!attackLanded.current && phase >= 0.55) {
         attackLanded.current = true
         if (distance <= ATTACK_RANGE + 0.6) useGame.getState().damagePlayer(ATTACK_DAMAGE)
@@ -340,6 +349,21 @@ export function Enemy({ enemy }: { enemy: EnemyDef }) {
       position={[enemy.position[0], terrainHeight(enemy.position[0], enemy.position[1]), enemy.position[1]]}
     >
       <primitive object={model} />
+      <group ref={telegraph} visible={false} position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <mesh renderOrder={3}>
+          <ringGeometry args={[0.7, 0.92, 36]} />
+          <meshBasicMaterial
+            ref={telegraphMaterial}
+            color="#ff3a2d"
+            transparent
+            opacity={0}
+            depthWrite={false}
+            side={THREE.DoubleSide}
+            blending={THREE.AdditiveBlending}
+            toneMapped={false}
+          />
+        </mesh>
+      </group>
       <group ref={bar} visible={false} position={[0, 2.12, 0]}>
         <Billboard>
           <mesh renderOrder={4}>
