@@ -7,6 +7,7 @@ import { normalizeHeight } from '../characters'
 import { asset, playerTransform, terrainHeight } from '../game'
 import { NPCS, type NpcDef } from '../npcs'
 import { useGame } from '../store'
+import { playQuest } from '../audio'
 
 const NEAR_DISTANCE = 3.1
 const TALK_DISTANCE = 3.6
@@ -134,6 +135,7 @@ export function NPC({ npc }: { npc: NpcDef }) {
               'Jalan ke kuil utara terbuka. Pergilah sebelum angin berubah arah.',
             ]
             game.completeQuest()
+            playQuest()
           } else if (game.enemiesDefeated > 0) {
             lines = [
               `${game.enemiesDefeated} dari ${game.enemiesTotal} bandit telah jatuh. Kamp itu masih berdenyut.`,

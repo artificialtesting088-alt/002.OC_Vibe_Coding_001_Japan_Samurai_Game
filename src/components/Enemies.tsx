@@ -10,6 +10,7 @@ import { ENEMIES, type EnemyDef } from '../enemies'
 import { asset, playerTransform, terrainHeight } from '../game'
 import { useGame } from '../store'
 import { createKatana } from '../weapons'
+import { playDeath, playHurt } from '../audio'
 
 const MAX_HEALTH = 50
 const AGGRO_RANGE = 14
@@ -200,6 +201,7 @@ export function Enemy({ enemy }: { enemy: EnemyDef }) {
           deathTime.current = 0
           respawnTime.current = RESPAWN_TIME
           bar.current.visible = false
+          playDeath()
           if (!counted.current) {
             counted.current = true
             useGame.getState().reportEnemyDefeated()
@@ -303,7 +305,10 @@ export function Enemy({ enemy }: { enemy: EnemyDef }) {
       }
       if (!attackLanded.current && phase >= 0.55) {
         attackLanded.current = true
-        if (distance <= ATTACK_RANGE + 0.6) useGame.getState().damagePlayer(ATTACK_DAMAGE)
+        if (distance <= ATTACK_RANGE + 0.6) {
+          useGame.getState().damagePlayer(ATTACK_DAMAGE)
+          playHurt()
+        }
       }
 
       if (elapsed >= duration - 0.05) {

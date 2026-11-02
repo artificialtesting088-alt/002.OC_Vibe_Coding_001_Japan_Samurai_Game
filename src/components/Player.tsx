@@ -9,6 +9,7 @@ import { asset, cameraLook, playerTransform, terrainHeight } from '../game'
 import { useGame } from '../store'
 import { nearestTargetDirection, strikeTargets } from '../combat'
 import { createKatana } from '../weapons'
+import { playHit, playPunch, playSlash, setAudioMuted, unlockAudio } from '../audio'
 
 const MODEL_URL = 'characters/samurai.glb'
 const GRAVITY = 26
@@ -186,6 +187,14 @@ export function Player() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      unlockAudio()
+      if (event.code === 'KeyM' && !event.repeat) {
+        const game = useGame.getState()
+        const muted = !game.muted
+        game.setMuted(muted)
+        setAudioMuted(muted)
+        return
+      }
       keys.current[event.code] = true
       if (event.code === 'Space') {
         event.preventDefault()
@@ -197,6 +206,7 @@ export function Player() {
       keys.current[event.code] = false
     }
     const onMouseDown = (event: MouseEvent) => {
+      unlockAudio()
       if (event.button !== 0) return
       if (!document.pointerLockElement) return
       if (useGame.getState().dialog) return
@@ -265,6 +275,8 @@ export function Player() {
         attackStart.current = now
         attackAction.current = action
         attackDidHit.current = false
+        if (kind === 'punch') playPunch()
+        else playSlash()
         if (action) play(kind === 'punch' ? 'Punch' : 'Attack')
       }
     }
@@ -333,13 +345,14 @@ export function Player() {
         attackDidHit.current = true
         const forward = new THREE.Vector3(Math.sin(root.rotation.y), 0, Math.cos(root.rotation.y))
         const origin = new THREE.Vector3(root.position.x, root.position.y + 1, root.position.z)
-        strikeTargets(
+        const hits = strikeTargets(
           origin,
           forward,
           kind === 'punch'
             ? { range: 1.9, arc: 1.35, damage: 12, knockback: 0.65 }
             : { range: 2.9, arc: 1.9, damage: 28, knockback: 1.35 },
         )
+        if (hits > 0) playHit()
       }
 
       if (kind === 'slash') {

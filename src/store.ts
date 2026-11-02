@@ -19,6 +19,7 @@ type GameState = {
   respawnToken: number
   questRewarded: boolean
   lastDialogClose: number
+  muted: boolean
   setLocked: (locked: boolean) => void
   openDialog: (name: string, lines: string[]) => void
   advanceDialog: () => void
@@ -28,6 +29,7 @@ type GameState = {
   reportEnemyDefeated: () => void
   completeQuest: () => void
   respawn: () => void
+  setMuted: (muted: boolean) => void
 }
 
 export const useGame = create<GameState>((set) => ({
@@ -42,6 +44,7 @@ export const useGame = create<GameState>((set) => ({
   respawnToken: 0,
   questRewarded: false,
   lastDialogClose: 0,
+  muted: false,
   setLocked: (locked) => set({ locked }),
   openDialog: (name, lines) => set({ dialog: { name, lines, index: 0 } }),
   advanceDialog: () =>
@@ -94,4 +97,5 @@ export const useGame = create<GameState>((set) => ({
       dialog: null,
       nearNpc: null,
     })),
+  setMuted: (muted) => set({ muted }),
 }))

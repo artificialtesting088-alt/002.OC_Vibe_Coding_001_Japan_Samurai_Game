@@ -14,6 +14,7 @@ export function Hud() {
   const enemiesDefeated = useGame((state) => state.enemiesDefeated)
   const enemiesTotal = useGame((state) => state.enemiesTotal)
   const questRewarded = useGame((state) => state.questRewarded)
+  const muted = useGame((state) => state.muted)
   const { active, progress } = useProgress()
   const [hurt, setHurt] = useState(false)
   const arrowRef = useRef<HTMLSpanElement>(null)
@@ -122,6 +123,8 @@ export function Hud() {
 
       {locked && <div className="hud__crosshair" />}
 
+      {muted && <div className="hud__muted">Suara mati · M</div>}
+
       {nearNpc && !dialog && <div className="hud__talk">[E] Bicara dengan {nearNpc}</div>}
 
       {dialog && (
@@ -138,6 +141,7 @@ export function Hud() {
         <kbd>Space</kbd> lompat &nbsp;·&nbsp;
         <kbd>F</kbd> / <kbd>Klik</kbd> pukul, ulangi tebas &nbsp;·&nbsp;
         <kbd>E</kbd> bicara &nbsp;·&nbsp;
+        <kbd>M</kbd> suara &nbsp;·&nbsp;
         <kbd>Esc</kbd> lepas kursor
       </div>
 

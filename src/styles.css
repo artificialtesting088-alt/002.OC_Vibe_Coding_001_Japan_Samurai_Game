@@ -85,6 +85,17 @@ canvas {
   margin-bottom: 4px;
 }
 
+.hud__muted {
+  position: absolute;
+  bottom: 60px;
+  left: 26px;
+  font-size: 9px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--gold);
+  opacity: 0.6;
+}
+
 .hud__vitals {
   position: absolute;
   bottom: 26px;
