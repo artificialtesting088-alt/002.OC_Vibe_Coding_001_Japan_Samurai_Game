@@ -117,7 +117,7 @@ export function NPC({ npc }: { npc: NpcDef }) {
       const root = group.current
       if (!root) return
       const game = useGame.getState()
-      if (game.dialog) return
+      if (game.dialog || game.nearAltar) return
       if (Date.now() - game.lastDialogClose < 350) return
       if (root.position.distanceTo(playerTransform.position) <= TALK_DISTANCE) {
         let lines = npc.lines

@@ -3,6 +3,7 @@ import { asset } from '../game'
 import { Terrain } from './Terrain'
 import { Vegetation } from './Vegetation'
 import { Structures } from './Structures'
+import { Shrine } from './Shrine'
 import { Petals } from './Petals'
 import { JacarandaTrees, Boulders } from './Trees'
 import { NPCs } from './NPC'
@@ -48,6 +49,7 @@ export function Scene() {
       <JacarandaTrees />
       <Boulders />
       <Structures />
+      <Shrine />
       <NPCs />
       <Enemies />
       <Petals />

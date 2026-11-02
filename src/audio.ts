@@ -1,6 +1,8 @@
 let context: AudioContext | null = null
 let master: GainNode | null = null
+let ambientLevel: GainNode | null = null
 let muted = false
+let ambientEnabled = false
 let ambientStarted = false
 
 function getContext() {
@@ -38,22 +40,26 @@ function startAmbient(ctx: AudioContext, output: GainNode) {
 
   const filter = ctx.createBiquadFilter()
   filter.type = 'lowpass'
-  filter.frequency.value = 520
+  filter.frequency.value = 480
   filter.Q.value = 0.4
 
-  const gain = ctx.createGain()
-  gain.gain.value = 0.075
+  const toneGain = ctx.createGain()
+  toneGain.gain.value = 0.05
 
   const lfo = ctx.createOscillator()
   lfo.frequency.value = 0.08
   const lfoGain = ctx.createGain()
-  lfoGain.gain.value = 0.035
+  lfoGain.gain.value = 0.018
   lfo.connect(lfoGain)
-  lfoGain.connect(gain.gain)
+  lfoGain.connect(toneGain.gain)
+
+  ambientLevel = ctx.createGain()
+  ambientLevel.gain.value = ambientEnabled ? 1 : 0
 
   source.connect(filter)
-  filter.connect(gain)
-  gain.connect(output)
+  filter.connect(toneGain)
+  toneGain.connect(ambientLevel)
+  ambientLevel.connect(output)
   source.start()
   lfo.start()
 }
@@ -123,6 +129,12 @@ export function setAudioMuted(next: boolean) {
   master.gain.setTargetAtTime(next ? 0 : 0.55, context.currentTime, 0.02)
 }
 
+export function setAmbientEnabled(enabled: boolean) {
+  ambientEnabled = enabled
+  if (!context || !ambientLevel) return
+  ambientLevel.gain.setTargetAtTime(enabled ? 1 : 0, context.currentTime, 0.35)
+}
+
 export function playPunch() {
   tone(150, 60, 0.16, 'sine', 0.2)
   noiseSweep(0.08, 900, 240, 0.09, 'lowpass')
@@ -149,6 +161,12 @@ export function playDeath() {
   tone(240, 88, 0.6, 'triangle', 0.06)
 }
 
+export function playAwaken() {
+  tone(82, 48, 1.5, 'sine', 0.2)
+  tone(220, 196, 1.0, 'triangle', 0.05, 0.08)
+  noiseSweep(0.9, 340, 90, 0.06, 'lowpass')
+}
+
 export function playQuest() {
   tone(660, 660, 0.34, 'sine', 0.08)
   tone(990, 990, 0.44, 'sine', 0.07, 0.14)
@@ -157,4 +175,22 @@ export function playQuest() {
 if (typeof window !== 'undefined') {
   window.addEventListener('pointerdown', unlockAudio, { once: true })
   window.addEventListener('keydown', unlockAudio, { once: true })
+}
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (!context) return
+    if (document.hidden) void context.suspend()
+    else void context.resume()
+  })
+}
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    void context?.close()
+    context = null
+    master = null
+    ambientLevel = null
+    ambientStarted = false
+  })
 }

@@ -1,5 +1,6 @@
-import { ENEMIES } from './enemies'
+import { ENEMIES, GUARDIAN } from './enemies'
 import { NPCS } from './npcs'
+import { ALTAR_POSITION } from './shrine'
 
 export type Objective = {
   label: string
@@ -12,12 +13,19 @@ const CAMP: [number, number] = [
 ]
 
 const KENSHIN = NPCS.find((npc) => npc.id === 'kenshin')?.position ?? [-6.5, 7]
-const TEMPLE: [number, number] = [0, -36]
 
-export function getObjective(enemiesDefeated: number, enemiesTotal: number, questRewarded: boolean): Objective {
+export function getObjective(
+  enemiesDefeated: number,
+  enemiesTotal: number,
+  questRewarded: boolean,
+  guardianDefeated: boolean,
+  journeyComplete: boolean,
+): Objective | null {
+  if (journeyComplete) return null
   if (!questRewarded) {
     if (enemiesDefeated < enemiesTotal) return { label: 'Kamp Bandit', position: CAMP }
     return { label: 'Kapten Kenshin', position: KENSHIN }
   }
-  return { label: 'Kuil Tua', position: TEMPLE }
+  if (!guardianDefeated) return { label: 'Penjaga Kuil', position: GUARDIAN.position }
+  return { label: 'Altar Kuil', position: ALTAR_POSITION }
 }

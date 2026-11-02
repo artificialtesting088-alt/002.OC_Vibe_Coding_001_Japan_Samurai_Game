@@ -18,6 +18,9 @@ type GameState = {
   hurtAt: number
   respawnToken: number
   questRewarded: boolean
+  guardianDefeated: boolean
+  journeyComplete: boolean
+  nearAltar: boolean
   lastDialogClose: number
   muted: boolean
   setLocked: (locked: boolean) => void
@@ -27,7 +30,10 @@ type GameState = {
   setNearNpc: (nearNpc: string | null) => void
   damagePlayer: (amount: number) => void
   reportEnemyDefeated: () => void
+  reportGuardianDefeated: () => void
   completeQuest: () => void
+  completeJourney: () => void
+  setNearAltar: (nearAltar: boolean) => void
   respawn: () => void
   setMuted: (muted: boolean) => void
 }
@@ -43,6 +49,9 @@ export const useGame = create<GameState>((set) => ({
   hurtAt: 0,
   respawnToken: 0,
   questRewarded: false,
+  guardianDefeated: false,
+  journeyComplete: false,
+  nearAltar: false,
   lastDialogClose: 0,
   muted: false,
   setLocked: (locked) => set({ locked }),
@@ -80,6 +89,15 @@ export const useGame = create<GameState>((set) => ({
             : `Bersihkan kamp bandit di timur (${enemiesDefeated}/${state.enemiesTotal}).`,
       }
     }),
+  reportGuardianDefeated: () =>
+    set((state) =>
+      state.guardianDefeated
+        ? state
+        : {
+            guardianDefeated: true,
+            quest: 'Penjaga telah jatuh. Berdoa di altar kuil.',
+          },
+    ),
   completeQuest: () =>
     set((state) =>
       state.questRewarded
@@ -87,15 +105,29 @@ export const useGame = create<GameState>((set) => ({
         : {
             health: 100,
             questRewarded: true,
-            quest: 'Kamp aman. Jelajahi kuil di balik hutan bambu.',
+            quest: 'Kuil di utara menanti. Hadapi penjaga yang terjaga.',
           },
     ),
+  completeJourney: () =>
+    set((state) =>
+      state.journeyComplete
+        ? state
+        : {
+            health: 100,
+            guardianDefeated: true,
+            journeyComplete: true,
+            nearAltar: false,
+            quest: 'Selesai — Jalan Angin telah tenang.',
+          },
+    ),
+  setNearAltar: (nearAltar) => set({ nearAltar }),
   respawn: () =>
     set((state) => ({
       health: 100,
       respawnToken: state.respawnToken + 1,
       dialog: null,
       nearNpc: null,
+      nearAltar: false,
     })),
   setMuted: (muted) => set({ muted }),
 }))

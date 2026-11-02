@@ -5,6 +5,14 @@ export type EnemyDef = {
   position: [number, number]
   tint: string
   scale: number
+  maxHealth?: number
+  damage?: number
+  aggroRange?: number
+  disengageRange?: number
+  attackRange?: number
+  moveSpeed?: number
+  respawn?: boolean
+  boss?: boolean
 }
 
 export const ENEMIES: EnemyDef[] = [
@@ -14,3 +22,20 @@ export const ENEMIES: EnemyDef[] = [
   { id: 'kage', name: 'Kage', model: 'ninja', position: [46, -3], tint: '#3f4a55', scale: 0.99 },
   { id: 'tetsu', name: 'Tetsu', model: 'samurai', position: [31, -15], tint: '#5a4a2f', scale: 1.04 },
 ]
+
+export const GUARDIAN: EnemyDef = {
+  id: 'guardian',
+  name: 'Penjaga Kuil',
+  model: 'samurai',
+  position: [7, -34],
+  tint: '#4a201a',
+  scale: 1.3,
+  maxHealth: 190,
+  damage: 15,
+  aggroRange: 18,
+  disengageRange: 30,
+  attackRange: 2.8,
+  moveSpeed: 3.2,
+  respawn: false,
+  boss: true,
+}

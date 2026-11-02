@@ -3,6 +3,7 @@ import { useProgress } from '@react-three/drei'
 import { cameraLook, playerTransform } from '../game'
 import { getObjective } from '../objective'
 import { useGame } from '../store'
+import { setAmbientEnabled } from '../audio'
 
 export function Hud() {
   const health = useGame((state) => state.health)
@@ -14,20 +15,25 @@ export function Hud() {
   const enemiesDefeated = useGame((state) => state.enemiesDefeated)
   const enemiesTotal = useGame((state) => state.enemiesTotal)
   const questRewarded = useGame((state) => state.questRewarded)
+  const guardianDefeated = useGame((state) => state.guardianDefeated)
+  const journeyComplete = useGame((state) => state.journeyComplete)
+  const nearAltar = useGame((state) => state.nearAltar)
   const muted = useGame((state) => state.muted)
   const { active, progress } = useProgress()
   const [hurt, setHurt] = useState(false)
+  const [ending, setEnding] = useState(false)
   const arrowRef = useRef<HTMLSpanElement>(null)
   const distanceRef = useRef<HTMLSpanElement>(null)
   const objective = useMemo(
-    () => getObjective(enemiesDefeated, enemiesTotal, questRewarded),
-    [enemiesDefeated, enemiesTotal, questRewarded],
+    () => getObjective(enemiesDefeated, enemiesTotal, questRewarded, guardianDefeated, journeyComplete),
+    [enemiesDefeated, enemiesTotal, questRewarded, guardianDefeated, journeyComplete],
   )
 
   useEffect(() => {
+    if (!objective) return
     let frame = 0
+    const [tx, tz] = objective.position
     const update = () => {
-      const [tx, tz] = objective.position
       const dx = tx - playerTransform.position.x
       const dz = tz - playerTransform.position.z
       const distance = Math.hypot(dx, dz) || 0.001
@@ -48,11 +54,22 @@ export function Hud() {
   }, [objective])
 
   useEffect(() => {
+    setAmbientEnabled(locked)
+  }, [locked])
+
+  useEffect(() => {
     if (!hurtAt) return
     setHurt(true)
     const timeout = window.setTimeout(() => setHurt(false), 280)
     return () => window.clearTimeout(timeout)
   }, [hurtAt])
+
+  useEffect(() => {
+    if (!journeyComplete) return
+    setEnding(true)
+    const timeout = window.setTimeout(() => setEnding(false), 9000)
+    return () => window.clearTimeout(timeout)
+  }, [journeyComplete])
 
   useEffect(() => {
     const onChange = () => {
@@ -102,15 +119,17 @@ export function Hud() {
         {quest}
       </div>
 
-      <div className="hud__objective">
-        <div className="hud__compass">
-          <span ref={arrowRef} className="hud__compass-arrow" />
+      {objective && (
+        <div className="hud__objective">
+          <div className="hud__compass">
+            <span ref={arrowRef} className="hud__compass-arrow" />
+          </div>
+          <div className="hud__objective-copy">
+            <b>{objective.label}</b>
+            <span ref={distanceRef}>—</span>
+          </div>
         </div>
-        <div className="hud__objective-copy">
-          <b>{objective.label}</b>
-          <span ref={distanceRef}>—</span>
-        </div>
-      </div>
+      )}
 
       <div className="hud__vitals">
         <div className="bar">
@@ -125,7 +144,9 @@ export function Hud() {
 
       {muted && <div className="hud__muted">Suara mati · M</div>}
 
-      {nearNpc && !dialog && <div className="hud__talk">[E] Bicara dengan {nearNpc}</div>}
+      {nearNpc && !dialog && !nearAltar && <div className="hud__talk">[E] Bicara dengan {nearNpc}</div>}
+
+      {nearAltar && !dialog && !journeyComplete && <div className="hud__talk">[E] Berdoa di altar</div>}
 
       {dialog && (
         <div className="hud__dialog">
@@ -163,6 +184,14 @@ export function Hud() {
       )}
 
       {hurt && <div className="hud__hurt" />}
+
+      {ending && (
+        <div className="hud__ending">
+          <span>Kaze no Michi</span>
+          <h2>JALAN ANGIN TELAH TENANG</h2>
+          <p>Kamp bandit sunyi, penjaga kuil telah beristirahat. Lembah kembali bernapas.</p>
+        </div>
+      )}
 
       {active && (
         <div className="hud__loading">

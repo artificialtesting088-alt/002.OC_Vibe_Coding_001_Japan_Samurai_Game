@@ -6,11 +6,11 @@ import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.j
 import { loadPlayerClips } from '../animations'
 import { normalizeHeight } from '../characters'
 import { registerCombatTarget, type CombatTarget } from '../combat'
-import { ENEMIES, type EnemyDef } from '../enemies'
+import { ENEMIES, GUARDIAN, type EnemyDef } from '../enemies'
 import { asset, playerTransform, terrainHeight } from '../game'
 import { useGame } from '../store'
 import { createKatana } from '../weapons'
-import { playDeath, playHurt } from '../audio'
+import { playAwaken, playDeath, playHurt } from '../audio'
 
 const MAX_HEALTH = 50
 const AGGRO_RANGE = 14
@@ -36,6 +36,16 @@ function faceTowards(root: THREE.Object3D, x: number, z: number, dt: number, spe
 }
 
 export function Enemy({ enemy }: { enemy: EnemyDef }) {
+  const maxHealth = enemy.maxHealth ?? MAX_HEALTH
+  const attackDamage = enemy.damage ?? ATTACK_DAMAGE
+  const aggroRange = enemy.aggroRange ?? AGGRO_RANGE
+  const disengageRange = enemy.disengageRange ?? DISENGAGE_RANGE
+  const attackRange = enemy.attackRange ?? ATTACK_RANGE
+  const moveSpeed = enemy.moveSpeed ?? 2.9
+  const canRespawn = enemy.respawn !== false
+  const questRewarded = useGame((state) => state.questRewarded)
+  const unlockedRef = useRef(!enemy.boss)
+
   const gltf = useGLTF(asset(`characters/${enemy.model}.glb`))
   const model = useMemo(() => {
     const clone = cloneSkeleton(gltf.scene)
@@ -49,7 +59,7 @@ export function Enemy({ enemy }: { enemy: EnemyDef }) {
   const telegraph = useRef<THREE.Group>(null!)
   const telegraphMaterial = useRef<THREE.MeshBasicMaterial>(null!)
   const home = useMemo(() => new THREE.Vector3(enemy.position[0], 0, enemy.position[1]), [enemy])
-  const health = useRef(MAX_HEALTH)
+  const health = useRef(maxHealth)
   const alive = useRef(true)
   const counted = useRef(false)
   const aggro = useRef(false)
@@ -181,7 +191,7 @@ export function Enemy({ enemy }: { enemy: EnemyDef }) {
   const target = useMemo<CombatTarget>(
     () => ({
       position: new THREE.Vector3(),
-      radius: 0.75,
+      radius: enemy.boss ? 0.95 : 0.75,
       alive: true,
       hit: (damage, direction, knockback) => {
         if (!alive.current) return
@@ -192,19 +202,20 @@ export function Enemy({ enemy }: { enemy: EnemyDef }) {
         katana.visible = false
         const root = group.current
         if (root) {
-          root.position.addScaledVector(direction, knockback)
+          root.position.addScaledVector(direction, knockback * (enemy.boss ? 0.35 : 1))
           root.position.y = terrainHeight(root.position.x, root.position.z)
         }
         if (health.current <= 0) {
           alive.current = false
           target.alive = false
           deathTime.current = 0
-          respawnTime.current = RESPAWN_TIME
+          if (canRespawn) respawnTime.current = RESPAWN_TIME
           bar.current.visible = false
           playDeath()
           if (!counted.current) {
             counted.current = true
-            useGame.getState().reportEnemyDefeated()
+            if (enemy.boss) useGame.getState().reportGuardianDefeated()
+            else useGame.getState().reportEnemyDefeated()
           }
         }
       },
@@ -218,6 +229,19 @@ export function Enemy({ enemy }: { enemy: EnemyDef }) {
     const dt = Math.min(delta, 0.05)
     const root = group.current
     if (!root) return
+
+    const unlocked = !enemy.boss || questRewarded
+    if (unlocked && !unlockedRef.current) {
+      unlockedRef.current = true
+      playAwaken()
+    }
+    if (!unlocked) {
+      target.alive = false
+      bar.current.visible = false
+      telegraph.current.visible = false
+      play('Idle')
+      return
+    }
 
     target.position.copy(root.position)
     target.alive = alive.current
@@ -241,7 +265,8 @@ export function Enemy({ enemy }: { enemy: EnemyDef }) {
       model.visible = deathTime.current < 3
 
       if (respawnTime.current <= 0) {
-        health.current = MAX_HEALTH
+        if (!canRespawn) return
+        health.current = maxHealth
         alive.current = true
         target.alive = true
         aggro.current = false
@@ -258,9 +283,9 @@ export function Enemy({ enemy }: { enemy: EnemyDef }) {
       return
     }
 
-    bar.current.visible = aggro.current || health.current < MAX_HEALTH
+    bar.current.visible = aggro.current || health.current < maxHealth
     if (fill.current) {
-      const ratio = Math.max(0.001, health.current / MAX_HEALTH)
+      const ratio = Math.max(0.001, health.current / maxHealth)
       fill.current.scale.x = ratio
       fill.current.position.x = (ratio - 1) / 2
     }
@@ -280,8 +305,8 @@ export function Enemy({ enemy }: { enemy: EnemyDef }) {
     const distance = Math.hypot(dx, dz)
     attackCooldown.current = Math.max(0, attackCooldown.current - dt)
 
-    if (!aggro.current && distance < AGGRO_RANGE) aggro.current = true
-    if (aggro.current && distance > DISENGAGE_RANGE) aggro.current = false
+    if (!aggro.current && distance < aggroRange) aggro.current = true
+    if (aggro.current && distance > disengageRange) aggro.current = false
 
     if (stagger.current > 0) {
       stagger.current -= dt
@@ -305,15 +330,15 @@ export function Enemy({ enemy }: { enemy: EnemyDef }) {
       }
       if (!attackLanded.current && phase >= 0.55) {
         attackLanded.current = true
-        if (distance <= ATTACK_RANGE + 0.6) {
-          useGame.getState().damagePlayer(ATTACK_DAMAGE)
+        if (distance <= attackRange + 0.6) {
+          useGame.getState().damagePlayer(attackDamage)
           playHurt()
         }
       }
 
       if (elapsed >= duration - 0.05) {
         attacking.current = false
-        attackCooldown.current = 1.4 + Math.random() * 0.8
+        attackCooldown.current = (enemy.boss ? 1.9 : 1.4) + Math.random() * 0.8
         katana.visible = false
       }
       return
@@ -321,8 +346,8 @@ export function Enemy({ enemy }: { enemy: EnemyDef }) {
 
     if (aggro.current) {
       faceTowards(root, playerTransform.position.x, playerTransform.position.z, dt)
-      if (distance > ATTACK_RANGE) {
-        const step = Math.min(distance - ATTACK_RANGE, 2.9 * dt)
+      if (distance > attackRange) {
+        const step = Math.min(distance - attackRange, moveSpeed * dt)
         root.position.x += (dx / distance) * step
         root.position.z += (dz / distance) * step
         root.position.y = terrainHeight(root.position.x, root.position.z)
@@ -350,6 +375,7 @@ export function Enemy({ enemy }: { enemy: EnemyDef }) {
   return (
     <group
       ref={group}
+      visible={!enemy.boss || questRewarded}
       scale={enemy.scale}
       position={[enemy.position[0], terrainHeight(enemy.position[0], enemy.position[1]), enemy.position[1]]}
     >
@@ -369,7 +395,26 @@ export function Enemy({ enemy }: { enemy: EnemyDef }) {
           />
         </mesh>
       </group>
-      <group ref={bar} visible={false} position={[0, 2.12, 0]}>
+      {enemy.boss && questRewarded && (
+        <>
+          <group position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <mesh renderOrder={3}>
+              <ringGeometry args={[0.95, 1.1, 40]} />
+              <meshBasicMaterial
+                color="#e7b45a"
+                transparent
+                opacity={0.55}
+                depthWrite={false}
+                side={THREE.DoubleSide}
+                blending={THREE.AdditiveBlending}
+                toneMapped={false}
+              />
+            </mesh>
+          </group>
+          <pointLight position={[0, 1.8, 0]} color="#ff7a45" intensity={12} distance={8} decay={2} />
+        </>
+      )}
+      <group ref={bar} visible={false} position={[0, enemy.boss ? 2.45 : 2.12, 0]} scale={enemy.boss ? 1.35 : 1}>
         <Billboard>
           <mesh renderOrder={4}>
             <planeGeometry args={[1.08, 0.09]} />
@@ -377,7 +422,7 @@ export function Enemy({ enemy }: { enemy: EnemyDef }) {
           </mesh>
           <mesh ref={fill} position={[0, 0, 0.002]} renderOrder={5}>
             <planeGeometry args={[1, 0.055]} />
-            <meshBasicMaterial color="#c8352b" transparent depthTest={false} toneMapped={false} />
+            <meshBasicMaterial color={enemy.boss ? '#e7b45a' : '#c8352b'} transparent depthTest={false} toneMapped={false} />
           </mesh>
         </Billboard>
       </group>
@@ -391,6 +436,7 @@ export function Enemies() {
       {ENEMIES.map((enemy) => (
         <Enemy key={enemy.id} enemy={enemy} />
       ))}
+      <Enemy key={GUARDIAN.id} enemy={GUARDIAN} />
     </>
   )
 }

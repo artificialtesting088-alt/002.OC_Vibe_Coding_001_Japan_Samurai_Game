@@ -405,3 +405,55 @@ canvas {
   letter-spacing: 0.18em;
   opacity: 0.68;
 }
+
+.hud__ending {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  background: radial-gradient(circle at 50% 46%, rgba(20, 15, 12, 0.12), rgba(15, 17, 22, 0.82) 72%);
+  animation: hud-ending 9s ease forwards;
+  pointer-events: none;
+}
+
+.hud__ending span {
+  font-size: 11px;
+  letter-spacing: 0.5em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.hud__ending h2 {
+  margin: 12px 0 10px;
+  font-size: clamp(24px, 4vw, 44px);
+  letter-spacing: 0.18em;
+  font-weight: 600;
+  color: var(--paper);
+  text-shadow: 0 4px 40px rgba(0, 0, 0, 0.7);
+}
+
+.hud__ending p {
+  max-width: 440px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.75;
+  letter-spacing: 0.05em;
+  opacity: 0.72;
+}
+
+@keyframes hud-ending {
+  0% {
+    opacity: 0;
+  }
+  12%,
+  82% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
